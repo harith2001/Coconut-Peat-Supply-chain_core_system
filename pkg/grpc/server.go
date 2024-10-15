@@ -25,6 +25,25 @@ func (s *PluginServer) RegisterChildPlugin(ctx context.Context, req *proto.Regis
 	}, nil
 }
 
+// ExecuteGrading handles the grading process
+func (s *PluginServer) ExecuteGrading(ctx context.Context, req *proto.ExecuteGradingRequest) (*proto.ExecuteGradingResponse, error) {
+	// Retrieve the grading plugin
+	gradingPlugin, exists := plugin.ParentPlugins["GradingPlugin"]
+	if !exists {
+		return &proto.ExecuteGradingResponse{
+			Success: false,
+			Message: "GradingPlugin not found",
+		}, nil
+	}
+	// Execute grading logic
+	passed, message := plugin.ExecuteGradingPlugin(gradingPlugin, int(req.ExecutionCount), int(req.UserRequirement))
+
+	return &proto.ExecuteGradingResponse{
+		Success: passed,
+		Message: message,
+	}, nil
+}
+
 // StartGrpcServer starts the gRPC server
 func StartGrpcServer() {
 	lis, err := net.Listen("tcp", ":50051")
