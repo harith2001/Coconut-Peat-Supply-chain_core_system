@@ -7,6 +7,9 @@ option go_package = "/proto";
 service PluginService {
     // The WDA will send a request to register a new child plugin
     rpc RegisterChildPlugin (RegisterPluginRequest) returns (PluginResponse);
+
+    // Method to execute the grading plugin
+    rpc ExecuteGrading (ExecuteGradingRequest) returns (ExecuteGradingResponse);
 }
 
 // Request from WDA with parent plugin name and customized parameters
@@ -17,6 +20,18 @@ message RegisterPluginRequest {
 
 // Response after registering the plugin
 message PluginResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// Request to execute grading
+message ExecuteGradingRequest {
+    int32 execution_count = 1;
+    int32 user_requirement = 2;
+}
+
+// Response after executing grading
+message ExecuteGradingResponse {
     bool success = 1;
     string message = 2;
 }

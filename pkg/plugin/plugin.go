@@ -1,89 +1,104 @@
-// package plugin
-
-// import (
-// 	"fmt"
-// )
-
-// // In-memory store of parent and child plugins (in production, you'd store this in MongoDB)
-// var ParentPlugins = map[string]map[string]string{
-// 	"GradingPlugin": {
-// 		"sizeThreshold":     "10",
-// 		"moistureThreshold": "15",
-// 	},
-// }
-
-// var ChildPlugins = []map[string]interface{}{}
-
-// // CreateChildPlugin creates a child plugin with customized parameters
-// func CreateChildPlugin(parentPluginName string, customizedParams map[string]string) (bool, string) {
-// 	// Find the parent plugin
-// 	parentPlugin, exists := ParentPlugins[parentPluginName]
-// 	if !exists {
-// 		return false, fmt.Sprintf("Parent plugin %s not found", parentPluginName)
-// 	}
-
-// 	// Create a new child plugin by inheriting from the parent plugin
-// 	childPlugin := make(map[string]interface{})
-// 	childPlugin["parent"] = parentPluginName
-
-// 	// Apply the parent plugin's parameters
-// 	for key, value := range parentPlugin {
-// 		childPlugin[key] = value
-// 	}
-
-// 	// Override with customized parameters
-// 	for key, value := range customizedParams {
-// 		if _, customizable := parentPlugin[key]; customizable {
-// 			childPlugin[key] = value
-// 		}
-// 	}
-
-// 	// Store the child plugin (could store in MongoDB)
-// 	ChildPlugins = append(ChildPlugins, childPlugin)
-
-//		return true, "Child plugin created successfully"
-//	}
 package plugin
 
 import (
+	"context"
 	"fmt"
+	"log"
+
+	"Coconut-Peat-Supply-chain_core_system/pkg/mongo"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
-// In-memory store of parent and child plugins (in production, you'd store this in MongoDB)
-var ParentPlugins = map[string]map[string]string{
-	"GradingPlugin": {
-		"sizeThreshold":     "10",
-		"moistureThreshold": "15",
-	},
+type Plugin struct {
+	PluginName         string            `bson:"pluginName"`
+	Type               string            `bson:"type"`
+	Parameters         map[string]string `bson:"parameters"`
+	CustomizableParams []string          `bson:"customizableParameters"`
+	ParentPlugin       string            `bson:"parentPlugin"`
+	Version            int               `bson:"version"`
+	CreatedAt          interface{}       `bson:"createdAt"`
+	UpdatedAt          interface{}       `bson:"updatedAt"`
 }
 
-var ChildPlugins = []map[string]interface{}{}
+var ParentPlugins = map[string]Plugin{}
+var ChildPlugins = []Plugin{}
 
-// CreateChildPlugin creates a child plugin with customized parameters
+// Initialize parent plugins from MongoDB
+func InitPlugins() {
+	collection := mongo.MongoClient.Database("scm").Collection("plugins")
+	cursor, err := collection.Find(context.Background(), bson.M{"type": "parent"})
+	if err != nil {
+		log.Fatalf("Failed to find parent plugins: %v", err)
+	}
+	defer cursor.Close(context.Background())
+
+	for cursor.Next(context.Background()) {
+		var plugin Plugin
+		if err := cursor.Decode(&plugin); err != nil {
+			log.Printf("Failed to decode plugin: %v", err)
+			continue
+		}
+		ParentPlugins[plugin.PluginName] = plugin
+	}
+
+	if err := cursor.Err(); err != nil {
+		log.Fatalf("Cursor error: %v", err)
+	}
+
+	log.Println("Initialized parent plugins from MongoDB")
+}
+
 func CreateChildPlugin(parentPluginName string, customizedParams map[string]string) (bool, string) {
-	// Find the parent plugin
 	parentPlugin, exists := ParentPlugins[parentPluginName]
 	if !exists {
 		return false, fmt.Sprintf("Parent plugin %s not found", parentPluginName)
 	}
 
-	// Create a new child plugin by inheriting from the parent plugin
-	childPlugin := make(map[string]interface{})
-	childPlugin["parent"] = parentPluginName
-
-	// Apply the parent plugin's parameters
-	for key, value := range parentPlugin {
-		childPlugin[key] = value
-	}
-
-	// Override with customized parameters
-	for key, value := range customizedParams {
-		if _, customizable := parentPlugin[key]; customizable {
-			childPlugin[key] = value
+	// Validate customized parameters
+	for key := range customizedParams {
+		found := false
+		for _, param := range parentPlugin.CustomizableParams {
+			if param == key {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false, fmt.Sprintf("Parameter %s is not customizable", key)
 		}
 	}
 
-	// Store the child plugin (could store in MongoDB)
+	// Create child plugin by inheriting from parent
+	childPlugin := Plugin{
+		PluginName:         parentPluginName + "_child",
+		Type:               "child",
+		Parameters:         make(map[string]string),
+		CustomizableParams: parentPlugin.CustomizableParams,
+		ParentPlugin:       parentPluginName,
+		Version:            parentPlugin.Version,
+		CreatedAt:          nil, // Handle timestamps appropriately
+		UpdatedAt:          nil,
+	}
+
+	// Inherit parameters from parent
+	for k, v := range parentPlugin.Parameters {
+		childPlugin.Parameters[k] = v
+	}
+
+	// Override with customized parameters
+	for k, v := range customizedParams {
+		childPlugin.Parameters[k] = v
+	}
+
+	// Insert child plugin into MongoDB
+	collection := mongo.MongoClient.Database("scm").Collection("plugins")
+	_, err := collection.InsertOne(context.Background(), childPlugin)
+	if err != nil {
+		return false, fmt.Sprintf("Failed to insert child plugin: %v", err)
+	}
+
+	// Add to in-memory store
 	ChildPlugins = append(ChildPlugins, childPlugin)
 
 	return true, "Child plugin created successfully"
