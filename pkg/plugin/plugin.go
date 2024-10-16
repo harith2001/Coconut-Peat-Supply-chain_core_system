@@ -11,10 +11,10 @@ import (
 )
 
 type Plugin struct {
-	PluginName         string            `bson:"pluginName"`
+	PluginName         string            `bson:"plugin_name"`
 	Type               string            `bson:"type"`
 	Parameters         map[string]string `bson:"parameters"`
-	CustomizableParams []string          `bson:"customizableParameters"`
+	CustomizableParams []string          `bson:"customizable"`
 	ParentPlugin       string            `bson:"parentPlugin"`
 	Version            int               `bson:"version"`
 	CreatedAt          interface{}       `bson:"createdAt"`
@@ -26,7 +26,8 @@ var ChildPlugins = []Plugin{}
 
 // Initialize parent plugins from MongoDB
 func InitPlugins() {
-	collection := mongo.MongoClient.Database("scm").Collection("plugins")
+	log.Println("Initializing parent plugins from MongoDB")
+	collection := mongo.MongoClient.Database("pluginsDB").Collection("plugins")
 	cursor, err := collection.Find(context.Background(), bson.M{"type": "parent"})
 	if err != nil {
 		log.Fatalf("Failed to find parent plugins: %v", err)
@@ -50,6 +51,8 @@ func InitPlugins() {
 }
 
 func CreateChildPlugin(parentPluginName string, customizedParams map[string]string) (bool, string) {
+	log.Printf("Attempting to create child plugin for parent: %s", parentPluginName)
+	log.Printf("customized params: %s", customizedParams)
 	parentPlugin, exists := ParentPlugins[parentPluginName]
 	if !exists {
 		return false, fmt.Sprintf("Parent plugin %s not found", parentPluginName)
@@ -67,6 +70,7 @@ func CreateChildPlugin(parentPluginName string, customizedParams map[string]stri
 		if !found {
 			return false, fmt.Sprintf("Parameter %s is not customizable", key)
 		}
+		log.Printf("Customizable parameters are valid for plugin: %s", parentPluginName)
 	}
 
 	// Create child plugin by inheriting from parent
@@ -92,7 +96,7 @@ func CreateChildPlugin(parentPluginName string, customizedParams map[string]stri
 	}
 
 	// Insert child plugin into MongoDB
-	collection := mongo.MongoClient.Database("scm").Collection("plugins")
+	collection := mongo.MongoClient.Database("pluginsDB").Collection("plugins")
 	_, err := collection.InsertOne(context.Background(), childPlugin)
 	if err != nil {
 		return false, fmt.Sprintf("Failed to insert child plugin: %v", err)

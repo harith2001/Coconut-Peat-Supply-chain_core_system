@@ -72,7 +72,7 @@ func ExecuteGradingPlugin(plugin Plugin, executionCount int, userRequirement int
 		totalAcceptable += result.Acceptable
 
 		// Store execution result in MongoDB
-		collection := mongo.MongoClient.Database("scm").Collection("executions")
+		collection := mongo.MongoClient.Database("pluginsDB").Collection("executions")
 		execution := bson.M{
 			"workflowId": "workflowId_example", // Replace with actual workflow ID
 			"pluginName": plugin.PluginName,
