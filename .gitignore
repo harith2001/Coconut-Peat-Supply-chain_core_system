@@ -25,7 +25,6 @@ go.work.sum
 *.cov
 
 # Go workspace files
-*.mod
 *.sum
 
 # .idea folder (for JetBrains IDEs like Goland)
