@@ -1,0 +1,70 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, build logs, and executable files
+*.out
+*.log
+*.test
+*.prof
+
+# Vendor folder for dependencies
+/vendor/
+vendor/
+
+# Dependencies
+Gopkg.lock
+Gopkg.toml
+go.sum
+go.work
+go.work.sum
+
+# Output of the go coverage tool
+*.cov
+
+# Go workspace files
+*.mod
+*.sum
+
+# .idea folder (for JetBrains IDEs like Goland)
+.idea/
+
+# VS Code settings
+.vscode/
+*.code-workspace
+
+# macOS-specific files
+.DS_Store
+
+# Linux-specific files
+*.swp
+
+# Windows-specific files
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Log files
+*.log
+
+# Build directories
+bin/
+build/
+
+# Executables
+*.exe
+*.out
+*.app
+*.dll
+
+# Protobuf generated files (if you want to regenerate)
+proto/*.pb.go
+proto/*.pb.gw.go
+
+# Cover data
+*.coverprofile
+
+# Cache directories
+.cache/
