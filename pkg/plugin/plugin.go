@@ -1,24 +1,25 @@
 package plugin
 
 import (
+	"Coconut-Peat-Supply-chain_core_system/pkg/mongo"
 	"context"
 	"fmt"
 	"log"
-
-	"Coconut-Peat-Supply-chain_core_system/pkg/mongo"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 type Plugin struct {
-	PluginName         string            `bson:"plugin_name"`
-	Type               string            `bson:"type"`
-	Parameters         map[string]string `bson:"parameters"`
-	CustomizableParams []string          `bson:"customizable"`
-	ParentPlugin       string            `bson:"parentPlugin"`
-	Version            int               `bson:"version"`
-	CreatedAt          interface{}       `bson:"createdAt"`
-	UpdatedAt          interface{}       `bson:"updatedAt"`
+	PluginName         string                 `bson:"plugin_name"`
+	Type               string                 `bson:"type"`
+	SensorName         string                 `bson:"sensor_name"`
+	Parameters         map[string]interface{} `bson:"parameters"`
+	CustomizableParams []string               `bson:"customizable"`
+	ParentPlugin       string                 `bson:"parentPlugin"`
+	Version            int                    `bson:"version"`
+	CreatedAt          interface{}            `bson:"createdAt"`
+	UpdatedAt          interface{}            `bson:"updatedAt"`
 }
 
 var ParentPlugins = map[string]Plugin{}
@@ -26,7 +27,6 @@ var ChildPlugins = []Plugin{}
 
 // Initialize parent plugins from MongoDB
 func InitPlugins() {
-	log.Println("Initializing parent plugins from MongoDB")
 	collection := mongo.MongoClient.Database("pluginsDB").Collection("plugins")
 	cursor, err := collection.Find(context.Background(), bson.M{"type": "parent"})
 	if err != nil {
@@ -51,8 +51,7 @@ func InitPlugins() {
 }
 
 func CreateChildPlugin(parentPluginName string, customizedParams map[string]string) (bool, string) {
-	log.Printf("Attempting to create child plugin for parent: %s", parentPluginName)
-	log.Printf("customized params: %s", customizedParams)
+	InitPlugins()
 	parentPlugin, exists := ParentPlugins[parentPluginName]
 	if !exists {
 		return false, fmt.Sprintf("Parent plugin %s not found", parentPluginName)
@@ -77,12 +76,13 @@ func CreateChildPlugin(parentPluginName string, customizedParams map[string]stri
 	childPlugin := Plugin{
 		PluginName:         parentPluginName + "_child",
 		Type:               "child",
-		Parameters:         make(map[string]string),
+		SensorName:         parentPlugin.SensorName,
+		Parameters:         make(map[string]interface{}),
 		CustomizableParams: parentPlugin.CustomizableParams,
 		ParentPlugin:       parentPluginName,
 		Version:            parentPlugin.Version,
-		CreatedAt:          nil, // Handle timestamps appropriately
-		UpdatedAt:          nil,
+		CreatedAt:          time.Now(),
+		UpdatedAt:          time.Now(),
 	}
 
 	// Inherit parameters from parent

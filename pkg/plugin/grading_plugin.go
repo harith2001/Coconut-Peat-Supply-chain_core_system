@@ -27,6 +27,7 @@ func InitializeGradingParentPlugin() {
 	gradingPlugin := bson.M{
 		"plugin_name": "GradingPlugin",
 		"type":        "parent",
+		"sensor_name": "GradingSensor",
 		"parameters": bson.M{
 			"qualifiedThreshold":  0,   // Threshold for qualified husks
 			"acceptableThreshold": 0,   // Threshold for acceptable husks
