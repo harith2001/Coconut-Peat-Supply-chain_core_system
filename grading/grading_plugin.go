@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
+	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -21,8 +23,16 @@ type GradingPluginServer struct {
 
 // Register registers the grading plugin in MongoDB
 func (s *GradingPluginServer) Register(ctx context.Context, req *proto.RegisterRequest) (*proto.RegisterResponse, error) {
-	collection := mongo.MongoClient.Database("pluginsDB").Collection("plugins")
-
+	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
+	// Check if the grading plugin is already registered
+	filter := bson.M{"plugin_name": "GradingPlugin"}
+	var existingPlugin bson.M
+	err := collection.FindOne(ctx, filter).Decode(&existingPlugin)
+	if err == nil {
+		// Plugin already exists
+		log.Println("GradingPlugin already registered in MongoDB")
+		return &proto.RegisterResponse{Success: false, Message: "GradingPlugin is already registered"}, nil
+	}
 	gradingPlugin := bson.M{
 		"plugin_name": "GradingPlugin",
 		"type":        "parent",
@@ -39,7 +49,7 @@ func (s *GradingPluginServer) Register(ctx context.Context, req *proto.RegisterR
 		"updated_at":   time.Now(),
 	}
 
-	_, err := collection.InsertOne(ctx, gradingPlugin)
+	_, err = collection.InsertOne(ctx, gradingPlugin)
 	if err != nil {
 		log.Printf("Failed to register grading plugin: %v", err)
 		return &proto.RegisterResponse{Success: false, Message: "Failed to register grading plugin"}, nil
@@ -51,7 +61,7 @@ func (s *GradingPluginServer) Register(ctx context.Context, req *proto.RegisterR
 
 // CreateChildPlugin creates a child plugin with customized parameters
 func (s *GradingPluginServer) CreateChildPlugin(ctx context.Context, req *proto.CreateChildPluginRequest) (*proto.CreateChildPluginResponse, error) {
-	collection := mongo.MongoClient.Database("pluginsDB").Collection("plugins")
+	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
 
 	parentPluginName := req.ParentPluginName
 	customizedParams := req.CustomizedParameters
@@ -114,14 +124,19 @@ func (s *GradingPluginServer) ExecuteGrading(ctx context.Context, req *proto.Exe
 }
 
 func main() {
-	lis, err := net.Listen("tcp", ":50052")
+	port := flag.String("port", "50052", "Port for the gRPC server")
+	flag.Parse()
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%s", *port))
 	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
+		log.Fatalf("Failed to listen on port %s: %v", *port, err)
 	}
+
 	mongo.ConnectMongoDB()
 	grpcServer := grpc.NewServer()
 	proto.RegisterPluginServiceServer(grpcServer, &GradingPluginServer{})
-	log.Println("GradingPlugin gRPC server listening on port :50052")
+	log.Printf("GradingPlugin gRPC server listening on port %s", *port)
+
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}

@@ -2,50 +2,35 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
 	"Coconut-Peat-Supply-chain_core_system/proto"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
-	// Connect to the gRPC server
-	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure(), grpc.WithBlock())
+	// Connect to the plugin server
+	conn, err := grpc.NewClient("localhost:50052", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		log.Fatalf("Failed to connect to plugin server: %v", err)
 	}
 	defer conn.Close()
 
 	client := proto.NewPluginServiceClient(conn)
 
-	// Simulate sending a child plugin configuration
-	registerReq := &proto.RegisterPluginRequest{
-		ParentPluginName: "GradingPlugin",
-		CustomizedParameters: map[string]string{
-			"userRequirementCount": "150",
-		},
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	// Make a test call, such as to the Register function
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	registerResp, err := client.RegisterChildPlugin(ctx, registerReq)
+	req := &proto.RegisterRequest{PluginName: "GradingPlugin"}
+	res, err := client.Register(ctx, req)
 	if err != nil {
-		log.Fatalf("could not register plugin: %v", err)
-	}
-	log.Printf("RegisterChildPlugin Response: %s", registerResp.Message)
-
-	// Execute the grading plugin
-	executeReq := &proto.ExecuteGradingRequest{
-		ExecutionCount:  1,
-		UserRequirement: 150,
+		log.Fatalf("Error calling Register: %v", err)
 	}
 
-	executeResp, err := client.ExecuteGrading(ctx, executeReq)
-	if err != nil {
-		log.Fatalf("could not execute grading: %v", err)
-	}
-	log.Printf("ExecuteGrading Response: %s", executeResp.Message)
+	fmt.Printf("Response from Register: %v\n", res)
 }
