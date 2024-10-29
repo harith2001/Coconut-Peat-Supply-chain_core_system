@@ -25,18 +25,45 @@ func NewCoreServer() *CoreServer {
 func (s *CoreServer) PluginAction(ctx context.Context, req *proto.PluginActionRequest) (*proto.PluginActionResponse, error) {
 	pluginName := req.PluginName
 	action := req.Action
-	log.Printf("Plugin Action: ", pluginName, action)
-	// Register Plugin
+	log.Printf("Plugin Action: %s, Action: %s", pluginName, action)
+
+	// Check if the action is "register"
 	if action == "register" {
-		_, err := s.registry.RegisterPlugin(pluginName, "50052") // Use dynamic port if necessary
+		// Register Plugin in plugin registry
+		_, err := s.registry.RegisterPlugin(pluginName, "50052") // Replace with dynamic port if necessary
 		if err != nil {
 			return &proto.PluginActionResponse{Success: false, Message: err.Error()}, nil
 		}
-		return &proto.PluginActionResponse{Success: true, Message: "Plugin registered successfully"}, nil
-	}
-	//create child plugin with customized parameters
+		log.Println("Plugin registered in registry successfully")
 
-	//have to write the execute action function
+		// Connect to the PluginService to call Register gRPC method
+		conn, err := grpc.Dial("localhost:50052", grpc.WithInsecure())
+		if err != nil {
+			return &proto.PluginActionResponse{Success: false, Message: "Failed to connect to PluginService"}, nil
+		}
+		defer conn.Close()
+		client := proto.NewPluginServiceClient(conn)
+
+		// Call the Register method of PluginService
+		registerResp, err := client.Register(ctx, &proto.RegisterRequest{PluginName: pluginName})
+		if err != nil || !registerResp.Success {
+			return &proto.PluginActionResponse{Success: false, Message: "Failed to register plugin in PluginService"}, nil
+		}
+
+		// After Register, call CreateChildPlugin with custom parameters if needed
+		createChildReq := &proto.CreateChildPluginRequest{
+			ParentPluginName:     pluginName,
+			CustomizedParameters: req.Parameters, // Pass any custom parameters from the request
+		}
+		createChildResp, err := client.CreateChildPlugin(ctx, createChildReq)
+		if err != nil || !createChildResp.Success {
+			return &proto.PluginActionResponse{Success: false, Message: "Failed to create child plugin"}, nil
+		}
+
+		return &proto.PluginActionResponse{Success: true, Message: "Plugin registered and child plugin created successfully"}, nil
+	}
+
+	// Handle invalid actions
 	return &proto.PluginActionResponse{Success: false, Message: "Invalid action"}, nil
 }
 

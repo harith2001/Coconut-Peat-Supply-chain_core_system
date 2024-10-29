@@ -123,6 +123,7 @@ func (s *GradingPluginServer) ExecuteGrading(ctx context.Context, req *proto.Exe
 	}, nil
 }
 
+// start the grading plugin
 func main() {
 	port := flag.String("port", "50052", "Port for the gRPC server")
 	flag.Parse()
