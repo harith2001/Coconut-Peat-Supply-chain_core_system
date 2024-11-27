@@ -1,0 +1,38 @@
+# Use an official Go image as the base image
+FROM golang:1.22.7-alpine as builder
+
+# Set the Current Working Directory inside the container
+WORKDIR /app
+
+# Install necessary packages for the build
+RUN apk add --no-cache git
+
+# Copy go.mod and go.sum files
+COPY go.mod go.sum ./
+
+# Download all dependencies. Dependencies are cached if the go.mod and go.sum files are not changed
+RUN go mod download
+
+# Copy the source code
+COPY . .
+
+# Build the Go app
+RUN go build -o grading_plugin
+
+# Create a minimal runtime image
+FROM alpine:latest
+
+# Set the Current Working Directory inside the container
+WORKDIR /root/
+
+# Copy the pre-built binary from the builder stage
+COPY --from=builder /app/grading_plugin .
+
+# Make sure the binary is executable
+RUN chmod +x grading_plugin
+
+# Expose the gRPC port
+EXPOSE 50052
+
+# Command to run the executable
+CMD ["./grading_plugin"]

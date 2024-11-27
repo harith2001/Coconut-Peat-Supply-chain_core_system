@@ -1,4 +1,4 @@
-module Coconut-Peat-Supply-chain_core_system
+module grading
 
 go 1.22.7
 
@@ -22,12 +22,9 @@ require (
 )
 
 require (
-	Coconut-Peat-Supply-chain_core_system/plugins/grading v0.0.0-00010101000000-000000000000 // indirect
 	go.mongodb.org/mongo-driver v1.17.1
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 )
-
-replace Coconut-Peat-Supply-chain_core_system/plugins/grading => ./plugins/grading

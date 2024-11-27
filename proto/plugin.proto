@@ -2,54 +2,39 @@ syntax = "proto3";
 
 package plugin;
 
-option go_package = "/proto";
+option go_package = "/proto;core";
 
-service CoreService {
-    rpc PluginAction (PluginActionRequest) returns (PluginActionResponse);
+service PluginManager {
+  rpc RegisterPlugin (Pluginrequest) returns (Pluginresponse);
+  rpc ExecutePlugin (Pluginexecute) returns (Executionstatus);
+  rpc UnregisterPlugin (PluginUnRegister) returns (UnRegisterResponse);
 }
 
-service PluginService {
-    rpc Register (RegisterRequest) returns (RegisterResponse);
-    rpc CreateChildPlugin (CreateChildPluginRequest) returns (CreateChildPluginResponse);
-    rpc ExecuteAction (ExecuteActionRequest) returns (ExecuteActionResponse);
+message Pluginrequest {
+  string plugin_name = 1;
+  string userRequirement = 2;
 }
 
-message PluginActionRequest {
-    string plugin_name = 1;
-    string action = 2;
-    map<string, string> parameters = 3;
+message Pluginresponse {
+  bool success = 1;
+  string message = 2;
 }
 
-message PluginActionResponse {
-    bool success = 1;
-    string message = 2;
+message Pluginexecute{
+  string plugin_name = 1;
 }
 
-message RegisterRequest {
-    string plugin_name = 1;
+message Executionstatus {
+  bool success = 1;
+  string message = 2;
+  map<string,string> results =3;
 }
 
-message RegisterResponse {
-    bool success = 1;
-    string message = 2;
+message PluginUnRegister{
+  string plugin_name = 1;
 }
 
-message CreateChildPluginRequest {
-    string parent_plugin_name = 1;
-    map<string, string> customized_parameters = 2;
-}
-
-message CreateChildPluginResponse {
-    bool success = 1;
-    string message = 2;
-}
-
-message ExecuteActionRequest  {
-    map<string, string> parameters = 1;
-}
-
-message ExecuteActionResponse  {
- bool success = 1;
-    string message = 2;
-    map<string, string> results = 3;   
+message UnRegisterResponse{
+  bool success = 1;
+  string message = 2;
 }
