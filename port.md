@@ -4,7 +4,7 @@ This table lists services and their corresponding ports.
 
 | Service Name | Port Number |
 |--------------|-------------|
-| core         | 50001       |
-| grading      | 50002       |
+| core         | 50051       |
+| grading      | 50052       |
 
 

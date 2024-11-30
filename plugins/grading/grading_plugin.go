@@ -31,6 +31,7 @@ func (s *GradingPluginServer) RegisterPlugin(ctx context.Context, req *proto.Plu
 	userRequirement := req.UserRequirement
 	plugin := bson.M{
 		"plugin_name":     req.PluginName,
+		"senosor_name":    "image_module",
 		"userRequirement": userRequirement,
 		"status":          true,
 		"process":         "registered",

@@ -6,123 +6,58 @@ import (
 	"context"
 	"log"
 	"net"
-	"sync"
+	"strconv"
 
+	mongo "Coconut-Peat-Supply-chain_core_system/config/db"
+
+	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-// PluginInfo stores information about a plugin.
-type PluginInfo struct {
-	Hostname string
-	Port     string
-}
-
-// PluginRegistry stores all registered plugins.
-type PluginRegistry struct {
-	plugins map[string]PluginInfo // plugin_name -> PluginInfo
-	mutex   sync.RWMutex
-}
-
-// Server is the core server that implements the PluginManager service.
 type Server struct {
-	pb.UnimplementedPluginManagerServer
-	registry *PluginRegistry
+	pb.UnimplementedMainServiceServer
 }
 
-// LoadPlugins loads hardcoded plugins into the registry.
-func (r *PluginRegistry) LoadPlugins() {
-	r.plugins = map[string]PluginInfo{
-		"grading": {Hostname: "localhost", Port: "50052"},
-		"PluginB": {Hostname: "localhost", Port: "50053"},
+func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb.ClientResponse, error) {
+
+	//get the plugin name and the port number from the mongodb
+	collection := mongo.MongoClient.Database("portDB").Collection("port")
+	filter := bson.D{
+		{Key: "plugin_name", Value: req.PluginName},
+		{Key: "status", Value: true},
 	}
-}
-
-// RegisterPlugin registers a new plugin
-func (s *Server) RegisterPlugin(ctx context.Context, req *pb.Pluginrequest) (*pb.Pluginresponse, error) {
-	s.registry.mutex.Lock()
-	defer s.registry.mutex.Unlock()
-
-	if _, exists := s.registry.plugins[req.PluginName]; exists {
-		return &pb.Pluginresponse{
-			Success: false,
-			Message: "Plugin already registered",
-		}, nil
-	}
-
-	if pluginInfo, ok := s.registry.plugins[req.PluginName]; ok {
-		s.registry.plugins[req.PluginName] = pluginInfo
-		return &pb.Pluginresponse{
-			Success: true,
-			Message: "Plugin registered successfully",
-		}, nil
-	}
-
-	return &pb.Pluginresponse{
-		Success: true,
-		Message: "Plugin registered successfully",
-	}, nil
-}
-
-// ExecutePlugin forwards the request to the specific plugin.
-func (s *Server) ExecutePlugin(ctx context.Context, req *pb.Pluginexecute) (*pb.Executionstatus, error) {
-	s.registry.mutex.RLock()
-	pluginInfo, exists := s.registry.plugins[req.PluginName]
-	s.registry.mutex.RUnlock()
-
-	if !exists {
-		return &pb.Executionstatus{
-			Success: false,
-			Message: "Plugin not found",
-		}, nil
-	}
-
-	address := pluginInfo.Hostname + ":" + pluginInfo.Port
-
-	// Connect to the plugin using gRPC
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	var result bson.M
+	err := collection.FindOne(context.Background(), filter).Decode(&result)
 	if err != nil {
-		return &pb.Executionstatus{
-			Success: false,
-			Message: "Failed to connect to plugin: " + err.Error(),
-		}, nil
+		log.Fatalf("Error while fetching the plugin details: %v", err)
+	}
+	pluginPort := strconv.Itoa(int(result["port"].(int32)))
+
+	//connecting the plugin
+	address := "localhost:" + pluginPort
+	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("Failed to connect to backend service: %v", err)
 	}
 	defer conn.Close()
 
-	client := pluginpb.NewGradingPluginClient(conn)
-	pluginReq := &pluginpb.PluginExecute{
-		PluginName: req.PluginName,
-	}
-	status, err := client.ExecutePlugin(ctx, pluginReq)
+	// Create a gRPC client for the backend service
+	backendClient := pluginpb.NewGradingPluginClient(conn)
+
+	// Call the function on the backend service
+	backendResp, err := backendClient.RegisterPlugin(ctx, &pluginpb.PluginRequest{
+		PluginName:      req.PluginName,
+		UserRequirement: req.UserRequirement,
+	})
 	if err != nil {
-		return &pb.Executionstatus{
-			Success: false,
-			Message: "Error executing plugin: " + err.Error(),
-		}, nil
+		return nil, err
 	}
 
-	return &pb.Executionstatus{
-		Success: status.Success,
-		Message: status.Message,
-		Results: status.Results,
-	}, nil
-}
-
-// UnregisterPlugin removes a plugin from the registry.
-func (s *Server) UnregisterPlugin(ctx context.Context, req *pb.PluginUnRegister) (*pb.UnRegisterResponse, error) {
-	s.registry.mutex.Lock()
-	defer s.registry.mutex.Unlock()
-
-	if _, exists := s.registry.plugins[req.PluginName]; !exists {
-		return &pb.UnRegisterResponse{
-			Success: false,
-			Message: "Plugin not found",
-		}, nil
-	}
-
-	delete(s.registry.plugins, req.PluginName)
-	return &pb.UnRegisterResponse{
-		Success: true,
-		Message: "Plugin unregistered successfully",
+	// Return the response to the client
+	return &pb.ClientResponse{
+		Success: backendResp.Success,
+		Message: backendResp.Message,
 	}, nil
 }
 
@@ -133,16 +68,9 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	pluginRegistry := &PluginRegistry{
-		plugins: make(map[string]PluginInfo),
-	}
-	pluginRegistry.LoadPlugins()
+	mongo.ConnectMongoDB()
 
-	server := &Server{
-		registry: pluginRegistry,
-	}
-
-	pb.RegisterPluginManagerServer(grpcServer, server)
+	pb.RegisterMainServiceServer(grpcServer, &Server{})
 
 	log.Println("Server is listening on port 50051...")
 	if err := grpcServer.Serve(listener); err != nil {
