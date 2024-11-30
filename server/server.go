@@ -1,13 +1,12 @@
 package main
 
 import (
+	pluginpb "Coconut-Peat-Supply-chain_core_system/plugins/grading/proto"
+	pb "Coconut-Peat-Supply-chain_core_system/proto"
 	"context"
 	"log"
 	"net"
 	"sync"
-
-	pluginpb "Coconut-Peat-Supply-chain_core_system/plugins/grading/proto"
-	pb "Coconut-Peat-Supply-chain_core_system/proto"
 
 	"google.golang.org/grpc"
 )
@@ -38,7 +37,7 @@ func (r *PluginRegistry) LoadPlugins() {
 	}
 }
 
-// RegisterPlugin registers a new plugin.
+// RegisterPlugin registers a new plugin
 func (s *Server) RegisterPlugin(ctx context.Context, req *pb.Pluginrequest) (*pb.Pluginresponse, error) {
 	s.registry.mutex.Lock()
 	defer s.registry.mutex.Unlock()
