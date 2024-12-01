@@ -15,7 +15,7 @@ import (
 )
 
 type GradingPluginServer struct {
-	proto.UnimplementedGradingPluginServer
+	proto.UnimplementedPluginServer
 }
 
 // Register registers the grading plugin in MongoDB
@@ -60,6 +60,14 @@ func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 
 	if !plugin["status"].(bool) {
 		return &proto.ExecutionStatus{Success: false, Message: "Plugin is deactivated"}, nil
+	}
+
+	if plugin["process"].(string) == "completed" {
+		return &proto.ExecutionStatus{Success: false, Message: "Plugin grading already completed"}, nil
+	}
+
+	if plugin["process"].(string) != "registered" {
+		return &proto.ExecutionStatus{Success: false, Message: "Plugin is not registered"}, nil
 	}
 
 	userRequirementStr, ok := plugin["userRequirement"].(string)
@@ -140,7 +148,7 @@ func main() {
 	}
 	grpcServer := grpc.NewServer()
 	mongo.ConnectMongoDB()
-	proto.RegisterGradingPluginServer(grpcServer, &GradingPluginServer{})
+	proto.RegisterPluginServer(grpcServer, &GradingPluginServer{})
 
 	log.Println("gRPC server is running on port 50052")
 	if err := grpcServer.Serve(lis); err != nil {

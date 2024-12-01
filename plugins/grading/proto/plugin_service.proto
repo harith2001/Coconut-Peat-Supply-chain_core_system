@@ -4,7 +4,7 @@ package plugin;
 
 option go_package = "/proto";
 
-service GradingPlugin {
+service Plugin {
   rpc RegisterPlugin (PluginRequest) returns (PluginResponse);
   rpc ExecutePlugin (PluginExecute) returns (ExecutionStatus);
   rpc UnregisterPlugin (PluginUnregister) returns (UnregisterResponse);
