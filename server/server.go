@@ -1,7 +1,6 @@
 package server
 
 import (
-	pluginpb "Coconut-Peat-Supply-chain_core_system/plugins/grading/proto"
 	pb "Coconut-Peat-Supply-chain_core_system/proto"
 	"context"
 	"log"
@@ -21,7 +20,7 @@ type Server struct {
 
 func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb.ClientResponse, error) {
 
-	//get the plugin name and the port number from the mongodb
+	//get the plugin name and the plugin port number from the mongodb
 	collection := mongo.MongoClient.Database("portDB").Collection("port")
 	filter := bson.D{
 		{Key: "plugin_name", Value: req.PluginName},
@@ -43,12 +42,12 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 	defer conn.Close()
 
 	// create a gRPC client for the backend service
-	backendClient := pluginpb.NewGradingPluginClient(conn)
+	backendClient := pb.NewPluginClient(conn)
 
 	//decide which action and call the backend service
 	action := req.Action
 	if action == "register" {
-		backendResp, err := backendClient.RegisterPlugin(ctx, &pluginpb.PluginRequest{
+		backendResp, err := backendClient.RegisterPlugin(ctx, &pb.PluginRequest{
 			PluginName:      req.PluginName,
 			UserRequirement: req.UserRequirement,
 		})
@@ -61,7 +60,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 		}, nil
 
 	} else if action == "execute" {
-		backendResp, err := backendClient.ExecutePlugin(ctx, &pluginpb.PluginExecute{
+		backendResp, err := backendClient.ExecutePlugin(ctx, &pb.PluginExecute{
 			PluginName: req.PluginName,
 		})
 		if err != nil {
@@ -75,7 +74,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 			Results: backendResp.Results,
 		}, nil
 	} else if action == "unregister" {
-		backendResp, err := backendClient.UnregisterPlugin(ctx, &pluginpb.PluginUnregister{
+		backendResp, err := backendClient.UnregisterPlugin(ctx, &pb.PluginUnregister{
 			PluginName: req.PluginName,
 		})
 		if err != nil {
