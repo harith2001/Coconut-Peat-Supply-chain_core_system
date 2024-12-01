@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	pluginpb "Coconut-Peat-Supply-chain_core_system/plugins/grading/proto"
@@ -42,26 +42,56 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 	}
 	defer conn.Close()
 
-	// Create a gRPC client for the backend service
+	// create a gRPC client for the backend service
 	backendClient := pluginpb.NewGradingPluginClient(conn)
 
-	// Call the function on the backend service
-	backendResp, err := backendClient.RegisterPlugin(ctx, &pluginpb.PluginRequest{
-		PluginName:      req.PluginName,
-		UserRequirement: req.UserRequirement,
-	})
-	if err != nil {
-		return nil, err
-	}
+	//decide which action and call the backend service
+	action := req.Action
+	if action == "register" {
+		backendResp, err := backendClient.RegisterPlugin(ctx, &pluginpb.PluginRequest{
+			PluginName:      req.PluginName,
+			UserRequirement: req.UserRequirement,
+		})
+		if err != nil {
+			return nil, err
+		}
+		return &pb.ClientResponse{
+			Success: backendResp.Success,
+			Message: backendResp.Message,
+		}, nil
 
-	// Return the response to the client
-	return &pb.ClientResponse{
-		Success: backendResp.Success,
-		Message: backendResp.Message,
-	}, nil
+	} else if action == "execute" {
+		backendResp, err := backendClient.ExecutePlugin(ctx, &pluginpb.PluginExecute{
+			PluginName: req.PluginName,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		// Return the response to the client
+		return &pb.ClientResponse{
+			Success: backendResp.Success,
+			Message: backendResp.Message,
+			Results: backendResp.Results,
+		}, nil
+	} else if action == "unregister" {
+		backendResp, err := backendClient.UnregisterPlugin(ctx, &pluginpb.PluginUnregister{
+			PluginName: req.PluginName,
+		})
+		if err != nil {
+			return nil, err
+		}
+		// Return the response to the client
+		return &pb.ClientResponse{
+			Success: backendResp.Success,
+			Message: backendResp.Message,
+		}, nil
+	} else {
+		return nil, nil
+	}
 }
 
-func main() {
+func StartServer() {
 	listener, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)

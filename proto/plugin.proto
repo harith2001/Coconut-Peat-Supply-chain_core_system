@@ -14,10 +14,13 @@ service MainService {
 message ClientRequest {
   string plugin_name = 1;
   string userRequirement = 2;
+  string action = 3;
 }
 
 // Response message from the API Gateway to the client.
 message ClientResponse {
     bool success = 1;
   string message = 2;
+  map<string, string> results = 3;
 }
+

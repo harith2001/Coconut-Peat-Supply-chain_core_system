@@ -23,6 +23,7 @@ require (
 
 require (
 	Coconut-Peat-Supply-chain_core_system/plugins/grading v0.0.0-00010101000000-000000000000
+	github.com/joho/godotenv v1.5.1
 	go.mongodb.org/mongo-driver v1.17.1
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
