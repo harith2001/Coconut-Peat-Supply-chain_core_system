@@ -74,15 +74,23 @@ func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 
 	qualified := 60
 	acceptable := 30
+	rejected := 10
 	totalCount := qualified + acceptable
 
 	message := "Grading completed successfully"
 	success := true
+	// Check if the total count is less than the user requirement
 	if totalCount < userRequirement {
 		message = "Order another batch or decide to process"
 		success = false
 	}
+	//check if the total count is greater than the user requirement
+	if totalCount > userRequirement {
+		message = "user requirement exceeded"
+		success = true
+	}
 
+	//update the plugin status to the mongoDB
 	update := bson.M{
 		"$set": bson.M{
 			"process":    "completed",
@@ -96,7 +104,12 @@ func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 		return &proto.ExecutionStatus{Success: false, Message: "Failed to update plugin"}, err
 	}
 
-	return &proto.ExecutionStatus{Success: success, Message: message, Results: map[string]string{"qualified": "60", "acceptable": "30", "rejected": "10"}}, nil
+	return &proto.ExecutionStatus{Success: success, Message: message, Results: map[string]string{
+		"qualified":       strconv.Itoa(qualified),
+		"acceptable":      strconv.Itoa(acceptable),
+		"rejected":        strconv.Itoa(rejected),
+		"total":           strconv.Itoa(totalCount),
+		"userRequirement": strconv.Itoa(userRequirement)}}, nil
 }
 
 // UnregisterPlugin deactivates the grading plugin

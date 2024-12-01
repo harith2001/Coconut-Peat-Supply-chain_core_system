@@ -16,6 +16,12 @@ RUN go mod download
 # Copy the source code
 COPY . .
 
+# Copy the .env file to the container
+COPY .env .env
+
+# Install an environment variable loader (if needed)
+RUN go install github.com/joho/godotenv/cmd/godotenv@latest
+
 # Build the Go app
 RUN go build -o grading_plugin
 
@@ -27,6 +33,9 @@ WORKDIR /root/
 
 # Copy the pre-built binary from the builder stage
 COPY --from=builder /app/grading_plugin .
+
+# Copy the .env file to the runtime image's working directory
+COPY --from=builder /app/.env /root/
 
 # Make sure the binary is executable
 RUN chmod +x grading_plugin
