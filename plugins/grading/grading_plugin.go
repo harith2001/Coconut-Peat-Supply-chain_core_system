@@ -102,7 +102,7 @@ func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 	update := bson.M{
 		"$set": bson.M{
 			"process":    "completed",
-			"results":    map[string]interface{}{"total": totalCount, "qualified": qualified, "acceptable": acceptable, "rejected": 10},
+			"results":    map[string]interface{}{"total": totalCount, "qualified": qualified, "acceptable": acceptable, "rejected": rejected},
 			"updated_at": time.Now(),
 		},
 	}
