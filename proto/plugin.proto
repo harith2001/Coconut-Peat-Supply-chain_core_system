@@ -2,36 +2,25 @@ syntax = "proto3";
 
 package plugin;
 
-option go_package = "/proto";
+option go_package = "/";
 
-service PluginService {
-    // The WDA will send a request to register a new child plugin
-    rpc RegisterChildPlugin (RegisterPluginRequest) returns (PluginResponse);
-
-    // Method to execute the grading plugin
-    rpc ExecuteGrading (ExecuteGradingRequest) returns (ExecuteGradingResponse);
+// Main service, which acts as an API Gateway.
+service MainService {
+  // Function called by the client.
+  rpc ClientFunction(ClientRequest) returns (ClientResponse);
 }
 
-// Request from WDA with parent plugin name and customized parameters
-message RegisterPluginRequest {
-    string parent_plugin_name = 1;
-    map<string, string> customized_parameters = 2;  // Customizable params and their values
+// Request message from the client to the API Gateway.
+message ClientRequest {
+  string plugin_name = 1;
+  string userRequirement = 2;
+  string action = 3;
 }
 
-// Response after registering the plugin
-message PluginResponse {
+// Response message from the API Gateway to the client.
+message ClientResponse {
     bool success = 1;
-    string message = 2;
+  string message = 2;
+  map<string, string> results = 3;
 }
 
-// Request to execute grading
-message ExecuteGradingRequest {
-    int32 execution_count = 1;
-    int32 user_requirement = 2;
-}
-
-// Response after executing grading
-message ExecuteGradingResponse {
-    bool success = 1;
-    string message = 2;
-}

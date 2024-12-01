@@ -3,6 +3,7 @@
 *.dll
 *.so
 *.dylib
+.env
 
 # Test binary, build logs, and executable files
 *.out
@@ -25,7 +26,6 @@ go.work.sum
 *.cov
 
 # Go workspace files
-*.mod
 *.sum
 
 # .idea folder (for JetBrains IDEs like Goland)
