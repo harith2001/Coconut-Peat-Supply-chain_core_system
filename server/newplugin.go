@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -38,9 +39,24 @@ func (s *NewPlugin) NewPluginCreate(ctx context.Context, req *pbv.NewPluginCreat
 		}, err
 	}
 
+	//run the plugin.sh command file
+	cmd := exec.Command("/bin/bash", "plugin.sh")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	err = cmd.Run()
+
+	if err != nil {
+		log.Printf("Failed to execute command file: %v", err)
+		return &pbv.NewPluginCreateResponse{
+			Success: false,
+			Message: "Failed to execute command file",
+		}, err
+	}
+
 	log.Printf("File %s uploaded successfully", filename)
 	return &pbv.NewPluginCreateResponse{
 		Success: true,
-		Message: "File uploaded successfully",
+		Message: "File uploaded and command executed successfully",
 	}, nil
 }
