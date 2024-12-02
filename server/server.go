@@ -100,6 +100,7 @@ func StartServer() {
 	mongo.ConnectMongoDB()
 
 	pb.RegisterMainServiceServer(grpcServer, &Server{})
+	pb.RegisterNewPluginServiceServer(grpcServer, &NewPlugin{})
 
 	log.Println("Server is listening on port 50051...")
 	if err := grpcServer.Serve(listener); err != nil {
