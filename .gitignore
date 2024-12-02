@@ -3,6 +3,7 @@
 *.dll
 *.so
 *.dylib
+.env
 
 # Test binary, build logs, and executable files
 *.out
@@ -25,7 +26,6 @@ go.work.sum
 *.cov
 
 # Go workspace files
-*.mod
 *.sum
 
 # .idea folder (for JetBrains IDEs like Goland)
@@ -62,6 +62,9 @@ build/
 # Protobuf generated files (if you want to regenerate)
 proto/*.pb.go
 proto/*.pb.gw.go
+
+plugins/grading/proto/*.pb.go
+plugins/grading/proto/*.pb.gw.go
 
 # Cover data
 *.coverprofile
