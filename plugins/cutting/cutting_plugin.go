@@ -2,24 +2,26 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"strconv"
 	"time"
 
-	mongo "grading/config/db"
-	"grading/proto"
+	mongo "cutting/config/db"
+	"cutting/proto"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"google.golang.org/grpc"
 )
 
-type GradingPluginServer struct {
+type CuttingPluginServer struct {
 	proto.UnimplementedPluginServer
 }
 
-// Register registers the grading plugin in MongoDB
-func (s *GradingPluginServer) RegisterPlugin(ctx context.Context, req *proto.PluginRequest) (*proto.PluginResponse, error) {
+// Register registers the cutting plugin in MongoDB
+func (s *CuttingPluginServer) RegisterPlugin(ctx context.Context, req *proto.PluginRequest) (*proto.PluginResponse, error) {
 	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
 	// Check if the grading plugin is already registered
 	filter := bson.M{"plugin_name": req.PluginName}
@@ -29,9 +31,12 @@ func (s *GradingPluginServer) RegisterPlugin(ctx context.Context, req *proto.Plu
 		return &proto.PluginResponse{Success: false, Message: "Plugin is already registered"}, nil
 	}
 	userRequirement := req.UserRequirement
+	if userRequirement == "" {
+		userRequirement = "0"
+	}
 	plugin := bson.M{
 		"plugin_name":     req.PluginName,
-		"senosor_name":    "image_module",
+		"senosor_name":    "",
 		"userRequirement": userRequirement,
 		"status":          true,
 		"process":         "registered",
@@ -49,7 +54,7 @@ func (s *GradingPluginServer) RegisterPlugin(ctx context.Context, req *proto.Plu
 }
 
 // execute grading
-func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.PluginExecute) (*proto.ExecutionStatus, error) {
+func (s *CuttingPluginServer) ExecutePlugin(ctx context.Context, req *proto.PluginExecute) (*proto.ExecutionStatus, error) {
 	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
 	filter := bson.M{"plugin_name": req.PluginName}
 	var plugin bson.M
@@ -70,42 +75,33 @@ func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 		return &proto.ExecutionStatus{Success: false, Message: "Plugin is not registered"}, nil
 	}
 
-	userRequirementStr, ok := plugin["userRequirement"].(string)
-	if !ok {
-		return &proto.ExecutionStatus{Success: false, Message: "Failed to get userRequirement"}, nil
-	}
-
-	userRequirement, err := strconv.Atoi(userRequirementStr)
+	filter = bson.M{"plugin_name": "grading"}
+	var gradingPlugin bson.M
+	err = collection.FindOne(ctx, filter).Decode(&gradingPlugin)
 	if err != nil {
-		return &proto.ExecutionStatus{Success: false, Message: "userRequirement must be an integer"}, err
+		return &proto.ExecutionStatus{Success: false, Message: "Grading plugin not found"}, err
 	}
+	//get the total count of the grading plugin
+	results := gradingPlugin["results"].(primitive.M)
+	totalCount := results["total"].(int32)
 
-	qualified := 60
-	acceptable := 30
-	rejected := 10
-	totalCount := qualified + acceptable
-
-	message := "Grading completed successfully"
+	message := fmt.Sprintf("check if all the %d husks are cut", totalCount)
 	success := true
-	// Check if the total count is less than the user requirement
-	if totalCount < userRequirement {
-		message = "Order another batch or decide to process"
-		success = false
-	}
-	//check if the total count is greater than the user requirement
-	if totalCount > userRequirement {
-		message = "user requirement exceeded"
-		success = true
-	}
 
-	//update the plugin status to the mongoDB
+	message = fmt.Sprintf("Cutting Completed Successfully")
+	success = true
+
+	// Update the cutting plugin status in MongoDB
 	update := bson.M{
 		"$set": bson.M{
 			"process":    "completed",
-			"results":    map[string]interface{}{"total": totalCount, "qualified": qualified, "acceptable": acceptable, "rejected": rejected},
+			"results":    map[string]interface{}{"totalCount": totalCount},
 			"updated_at": time.Now(),
 		},
 	}
+
+	// Update the cutting plugin document
+	filter = bson.M{"plugin_name": req.PluginName}
 
 	_, err = collection.UpdateOne(ctx, filter, update)
 	if err != nil {
@@ -113,15 +109,11 @@ func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 	}
 
 	return &proto.ExecutionStatus{Success: success, Message: message, Results: map[string]string{
-		"qualified":       strconv.Itoa(qualified),
-		"acceptable":      strconv.Itoa(acceptable),
-		"rejected":        strconv.Itoa(rejected),
-		"total":           strconv.Itoa(totalCount),
-		"userRequirement": strconv.Itoa(userRequirement)}}, nil
+		"total_count": strconv.Itoa(int(totalCount))}}, nil
 }
 
 // UnregisterPlugin deactivates the grading plugin
-func (s *GradingPluginServer) UnregisterPlugin(ctx context.Context, req *proto.PluginUnregister) (*proto.UnregisterResponse, error) {
+func (s *CuttingPluginServer) UnregisterPlugin(ctx context.Context, req *proto.PluginUnregister) (*proto.UnregisterResponse, error) {
 	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
 	filter := bson.M{"plugin_name": req.PluginName}
 	update := bson.M{
@@ -142,15 +134,15 @@ func (s *GradingPluginServer) UnregisterPlugin(ctx context.Context, req *proto.P
 // start the grading plugin
 func main() {
 
-	lis, err := net.Listen("tcp", ":50052")
+	lis, err := net.Listen("tcp", ":50053")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
 	mongo.ConnectMongoDB()
-	proto.RegisterPluginServer(grpcServer, &GradingPluginServer{})
+	proto.RegisterPluginServer(grpcServer, &CuttingPluginServer{})
 
-	log.Println("gRPC server is running on port 50052")
+	log.Println("gRPC server is running on port 50053")
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}

@@ -63,6 +63,9 @@ build/
 proto/*.pb.go
 proto/*.pb.gw.go
 
+plugins/grading/proto/*.pb.go
+plugins/grading/proto/*.pb.gw.go
+
 # Cover data
 *.coverprofile
 
