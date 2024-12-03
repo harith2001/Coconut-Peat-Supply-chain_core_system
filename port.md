@@ -14,3 +14,5 @@ protoc --go_out=. --go-grpc_out=. proto/plugin.proto
 # docker command
 docker build -t grading_plugin -f grading.dockerfile .
 docker run -p 50052:50052 grading_plugin
+docker images
+docker ps
