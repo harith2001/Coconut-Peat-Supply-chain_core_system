@@ -16,7 +16,7 @@ type NewPlugin struct {
 func (s *NewPlugin) NewPluginCreate(ctx context.Context, req *pbv.NewPluginCreateRequest) (*pbv.NewPluginCreateResponse, error) {
 	filename := req.FileName
 	filedata := req.FileData
-	savePath := filepath.Join("customPlugins", filename)
+	savePath := filepath.Join("plugins", filename)
 
 	// Ensure the directory exists
 	dir := filepath.Dir(savePath)

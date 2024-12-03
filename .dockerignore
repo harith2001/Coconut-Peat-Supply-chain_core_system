@@ -1,0 +1,3 @@
+# Ignore unnecessary files and folders
+plugins/
+.git/
