@@ -91,7 +91,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 }
 
 func StartServer() {
-	listener, err := net.Listen("tcp", ":50051")
+	listener, err := net.Listen("tcp", "0.0.0.0:50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

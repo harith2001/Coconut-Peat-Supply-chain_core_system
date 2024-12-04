@@ -169,7 +169,7 @@ func (s *CuttingPluginServer) UnregisterPlugin(ctx context.Context, req *proto.P
 // start the grading plugin
 func main() {
 
-	lis, err := net.Listen("tcp", ":50053")
+	lis, err := net.Listen("tcp", "0.0.0.0:50053")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
