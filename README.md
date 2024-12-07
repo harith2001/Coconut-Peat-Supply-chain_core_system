@@ -1,13 +1,15 @@
+
 # Coco Peat Supply Chain Management Core
 The Coco Peat Supply Chain Management Core is a modular, plugin-based backend system that manages and orchestrates the supply chain processes of coco peat manufacturing. This repository contains the core system, written in Go, with gRPC communication and Docker containerization, deployed using K3s for scalable and efficient orchestration.
-
+ <br />
 # 🌟 Features
  1.  Plugin Architecture: Modular design enabling the creation and management of supply chain steps as plugins (e.g., grading, cutting, washing, drying).
- 2. gRPC Communication: Efficient and secure communication between core services and plugins.
- 3. Containerized Services: Plugin and core services containerized using Docker.
- 4. K3s Orchestration: Lightweight Kubernetes distribution for deploying, scaling, and managing plugins.
- 5. NoSQL Database: MongoDB integration for data storage.
- 6. Blockchain Transparency: Ensures integrity and traceability of the supply chain workflow.
+ 2.  Plugin Management: Brand new plugin creation. 
+ 3. gRPC Communication: Efficient and secure communication between core services and plugins.
+ 4. Containerized Services: Plugin and core services containerized using Docker.
+ 5. K3s Orchestration: Lightweight Kubernetes distribution for deploying, scaling, and managing plugins.
+ 6. NoSQL Database: MongoDB integration for data storage.
+ 7. Blockchain Transparency: Ensures integrity and traceability of the supply chain workflow.
 
 # 🛠️ Tech Stack
 1. Programming Language: Go (Golang)
@@ -29,7 +31,7 @@ MongoDB (NoSQL database)
 # Installation
 
 1. Clone the repository:
-git clone https://github.com/harith2001/Coconut-Peat-Supply-chain_core_system.git
+git clone https://github.com/harith2001/Coconut-Peat-Supply-chain_core_system.git <br />
 cd Coconut-Peat-Supply-chain_core_system
 
 2. Install dependencies:
@@ -42,8 +44,14 @@ docker-compose up -d
 kubectl apply -f deployment.yaml
 
 5. Run the core system:
-go run main.go 
-OR
+go run main.go  <br />
+OR <br />
+air
+
+6. Run the plugins :
+cd plugins/{specific plugin} <br />
+go run {pluginName}.go <br />
+OR <br />
 air
 
 # 📖 Usage
@@ -63,4 +71,5 @@ Run unit and integration tests to ensure functionality:
 go test ./tests/...
 
 # THANK YOU !!
+
 
