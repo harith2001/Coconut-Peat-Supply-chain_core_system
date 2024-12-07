@@ -28,11 +28,13 @@ RUN go build -o main
 # Create a minimal runtime image
 FROM alpine:latest
 
+FROM docker:dind
+
 # Set the Current Working Directory inside the container
 WORKDIR /root/
 
-# Install bash in the runtime image
-RUN apk add --no-cache bash
+# Install bash, go, docker in the runtime image
+RUN apk add --no-cache bash go docker
 
 # Copy the pre-built binary from the builder stage
 COPY --from=builder /app/main .

@@ -39,7 +39,7 @@ func (s *NewPlugin) NewPluginCreate(ctx context.Context, req *pbv.NewPluginCreat
 		}, err
 	}
 
-	//run the plugin.sh command file
+	//run the plugin.sh command file to unzip, install and run docker container
 	cmd := exec.Command("/bin/bash", "plugin.sh")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

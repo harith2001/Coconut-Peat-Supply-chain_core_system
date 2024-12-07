@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  service1:
+    build:
+      context: .core
+      dockerfile: Dockerfile
+    container_name: Core
+    networks:
+      - mynetwork
+    ports:
+      - "50051:50051"
+
+  service2:
+    build:
+      context: ./plugins/grading/grading_plugin
+      dockerfile: Dockerfile
+    container_name: Grading
+    networks:
+      - mynetwork
+    ports:
+      - "50052:50052" 
+
+  service3:
+    build:
+      context: ./plugins/cutting/cutting_plugin
+      dockerfile: Dockerfile
+    container_name: Cutting
+    networks:
+      - mynetwork
+    ports:
+      - "50053:50053" 
+
+networks:
+  mynetwork:
+    driver: bridge
