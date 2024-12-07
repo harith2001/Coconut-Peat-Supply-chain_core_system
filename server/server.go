@@ -23,7 +23,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 	//get the plugin name and the plugin port number from the mongodb
 	collection := mongo.MongoClient.Database("portDB").Collection("port")
 	filter := bson.D{
-		{Key: "plugin_name", Value: req.PluginName},
+		{Key: "plugin", Value: req.PluginName},
 		{Key: "status", Value: true},
 	}
 	var result bson.M
@@ -34,7 +34,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 	pluginPort := strconv.Itoa(int(result["port"].(int32)))
 
 	//connecting the plugin
-	address := "localhost:" + pluginPort
+	address := "0.0.0.0:" + pluginPort
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to backend service: %v", err)
@@ -91,7 +91,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 }
 
 func StartServer() {
-	listener, err := net.Listen("tcp", ":50051")
+	listener, err := net.Listen("tcp", "0.0.0.0:50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

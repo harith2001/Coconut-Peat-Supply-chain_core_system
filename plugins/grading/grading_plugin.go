@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -18,28 +19,67 @@ type GradingPluginServer struct {
 	proto.UnimplementedPluginServer
 }
 
+// create the grading plugin in MongoDB
+func storePluginDetails() error {
+	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
+	steps := []string{
+		"Unload all husk batch",
+		"Starting the grading sensor",
+		"Grading the husk based the color using the sensor",
+		"Sorting the husk based on the color (qualified, acceptable, rejected)",
+		"Counting the total usable husk (qualified + acceptable)",
+		"Checking if the total usable husk is equal to the user requirement",
+		"if the total usable husk is less than the user requirement, order another batch or decide to process",
+	}
+	pluginDetails := bson.M{
+		"plugin_name":     "grading",
+		"senosor_name":    "image_module",
+		"userRequirement": "",
+		"status":          true,
+		"process":         "not",
+		"steps":           steps,
+		"created_at":      time.Now(),
+		"updated_at":      time.Now(),
+	}
+	// Check if a plugin with the same name already exists
+	filter := bson.M{"plugin_name": pluginDetails["plugin_name"]}
+	var existingPlugin bson.M
+	err := collection.FindOne(context.Background(), filter).Decode(&existingPlugin)
+	if err == nil {
+		return fmt.Errorf("plugin with name '%s' already exists", pluginDetails["plugin_name"])
+	}
+
+	// Insert the new plugin details
+	_, err = collection.InsertOne(context.Background(), pluginDetails)
+	if err != nil {
+		return fmt.Errorf("error storing plugin details: %v", err)
+	}
+
+	log.Println("Plugin details stored successfully")
+	return nil
+}
+
 // Register registers the grading plugin in MongoDB
 func (s *GradingPluginServer) RegisterPlugin(ctx context.Context, req *proto.PluginRequest) (*proto.PluginResponse, error) {
 	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
 	// Check if the grading plugin is already registered
-	filter := bson.M{"plugin_name": req.PluginName}
+	filter := bson.M{"plugin_name": req.PluginName, "process": "registered"}
 	var existingPlugin bson.M
 	err := collection.FindOne(ctx, filter).Decode(&existingPlugin)
 	if err == nil {
 		return &proto.PluginResponse{Success: false, Message: "Plugin is already registered"}, nil
 	}
+	//if not registered, register the plugin
 	userRequirement := req.UserRequirement
 	plugin := bson.M{
-		"plugin_name":     req.PluginName,
-		"senosor_name":    "image_module",
-		"userRequirement": userRequirement,
-		"status":          true,
-		"process":         "registered",
-		"created_at":      time.Now(),
-		"updated_at":      time.Now(),
+		"$set": bson.M{
+			"userRequirement": userRequirement,
+			"process":         "registered",
+			"updated_at":      time.Now(),
+		},
 	}
-
-	_, err = collection.InsertOne(ctx, plugin)
+	update := bson.M{"plugin_name": req.PluginName}
+	_, err = collection.UpdateOne(ctx, update, plugin)
 	if err != nil {
 		log.Printf("Failed to register plugin: %v", err)
 		return &proto.PluginResponse{Success: false, Message: "Failed to register plugin"}, err
@@ -142,13 +182,14 @@ func (s *GradingPluginServer) UnregisterPlugin(ctx context.Context, req *proto.P
 // start the grading plugin
 func main() {
 
-	lis, err := net.Listen("tcp", ":50052")
+	lis, err := net.Listen("tcp", "0.0.0.0:50052")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
 	mongo.ConnectMongoDB()
 	proto.RegisterPluginServer(grpcServer, &GradingPluginServer{})
+	storePluginDetails()
 
 	log.Println("gRPC server is running on port 50052")
 	if err := grpcServer.Serve(lis); err != nil {

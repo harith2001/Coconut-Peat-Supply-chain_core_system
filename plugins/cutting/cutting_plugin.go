@@ -20,11 +20,47 @@ type CuttingPluginServer struct {
 	proto.UnimplementedPluginServer
 }
 
+// create the cutting plugin in MongoDB
+func storePluginDetails() error {
+	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
+	steps := []string{
+		"Insert the graded husk batch",
+		"Start the cutting machine",
+		"Check if all the graded husk are processed/cut",
+	}
+	pluginDetails := bson.M{
+		"plugin_name":     "cutting",
+		"senosor_name":    "null",
+		"userRequirement": "",
+		"status":          true,
+		"process":         "not",
+		"steps":           steps,
+		"created_at":      time.Now(),
+		"updated_at":      time.Now(),
+	}
+	// Check if a plugin with the same name already exists
+	filter := bson.M{"plugin_name": pluginDetails["plugin_name"]}
+	var existingPlugin bson.M
+	err := collection.FindOne(context.Background(), filter).Decode(&existingPlugin)
+	if err == nil {
+		return fmt.Errorf("plugin with name '%s' already exists", pluginDetails["plugin_name"])
+	}
+
+	// Insert the new plugin details
+	_, err = collection.InsertOne(context.Background(), pluginDetails)
+	if err != nil {
+		return fmt.Errorf("error storing plugin details: %v", err)
+	}
+
+	log.Println("Plugin details stored successfully")
+	return nil
+}
+
 // Register registers the cutting plugin in MongoDB
 func (s *CuttingPluginServer) RegisterPlugin(ctx context.Context, req *proto.PluginRequest) (*proto.PluginResponse, error) {
 	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
-	// Check if the grading plugin is already registered
-	filter := bson.M{"plugin_name": req.PluginName}
+	// Check if the cutting plugin is already registered
+	filter := bson.M{"plugin_name": req.PluginName, "process": "registered"}
 	var existingPlugin bson.M
 	err := collection.FindOne(ctx, filter).Decode(&existingPlugin)
 	if err == nil {
@@ -35,16 +71,15 @@ func (s *CuttingPluginServer) RegisterPlugin(ctx context.Context, req *proto.Plu
 		userRequirement = "0"
 	}
 	plugin := bson.M{
-		"plugin_name":     req.PluginName,
-		"senosor_name":    "",
-		"userRequirement": userRequirement,
-		"status":          true,
-		"process":         "registered",
-		"created_at":      time.Now(),
-		"updated_at":      time.Now(),
+		"$set": bson.M{
+			"userRequirement": userRequirement,
+			"status":          true,
+			"process":         "registered",
+			"updated_at":      time.Now(),
+		},
 	}
-
-	_, err = collection.InsertOne(ctx, plugin)
+	update := bson.M{"plugin_name": req.PluginName}
+	_, err = collection.UpdateOne(ctx, update, plugin)
 	if err != nil {
 		log.Printf("Failed to register plugin: %v", err)
 		return &proto.PluginResponse{Success: false, Message: "Failed to register plugin"}, err
@@ -134,13 +169,14 @@ func (s *CuttingPluginServer) UnregisterPlugin(ctx context.Context, req *proto.P
 // start the grading plugin
 func main() {
 
-	lis, err := net.Listen("tcp", ":50053")
+	lis, err := net.Listen("tcp", "0.0.0.0:50053")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
 	mongo.ConnectMongoDB()
 	proto.RegisterPluginServer(grpcServer, &CuttingPluginServer{})
+	storePluginDetails()
 
 	log.Println("gRPC server is running on port 50053")
 	if err := grpcServer.Serve(lis); err != nil {
