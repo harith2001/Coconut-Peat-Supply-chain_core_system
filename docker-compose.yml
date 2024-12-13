@@ -1,31 +1,35 @@
 version: '3.8'
 
 services:
-  service1:
+  core:
     build:
-      context: .core
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: core.dockerfile
     container_name: Core
     networks:
       - mynetwork
     ports:
       - "50051:50051"
 
-  service2:
+  grading:
     build:
-      context: ./plugins/grading/grading_plugin
-      dockerfile: Dockerfile
+      context: ./plugins/grading
+      dockerfile: grading.dockerfile
     container_name: Grading
+    volumes:
+      - ./plugins/grading:/app
     networks:
       - mynetwork
     ports:
       - "50052:50052" 
 
-  service3:
+  cutting:
     build:
-      context: ./plugins/cutting/cutting_plugin
-      dockerfile: Dockerfile
+      context: ./plugins/cutting
+      dockerfile: cutting.dockerfile
     container_name: Cutting
+    volumes:
+      - ./plugins/cutting:/app
     networks:
       - mynetwork
     ports:
