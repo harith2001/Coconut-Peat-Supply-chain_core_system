@@ -20,7 +20,7 @@ type Server struct {
 
 func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb.ClientResponse, error) {
 
-	//get the plugin name and the plugin port number from the mongodb
+	//get the plugin name and the plugin port number and the plugin name from the mongodb
 	collection := mongo.MongoClient.Database("portDB").Collection("port")
 	filter := bson.D{
 		{Key: "plugin", Value: req.PluginName},
@@ -32,9 +32,10 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 		log.Fatalf("Error while fetching the plugin details: %v", err)
 	}
 	pluginPort := strconv.Itoa(int(result["port"].(int32)))
+	pluginName := req.PluginName
 
 	//connecting the plugin
-	address := "0.0.0.0:" + pluginPort
+	address := pluginName + ":" + pluginPort
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to backend service: %v", err)
@@ -91,7 +92,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 }
 
 func StartServer() {
-	listener, err := net.Listen("tcp", "0.0.0.0:50051")
+	listener, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
