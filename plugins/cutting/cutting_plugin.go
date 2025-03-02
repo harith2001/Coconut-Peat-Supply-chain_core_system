@@ -103,7 +103,7 @@ func (s *CuttingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 	}
 
 	if plugin["process"].(string) == "completed" {
-		return &proto.ExecutionStatus{Success: false, Message: "Plugin grading already completed"}, nil
+		return &proto.ExecutionStatus{Success: false, Message: "Plugin cutting already completed"}, nil
 	}
 
 	if plugin["process"].(string) != "registered" {
@@ -114,7 +114,7 @@ func (s *CuttingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 	var gradingPlugin bson.M
 	err = collection.FindOne(ctx, filter).Decode(&gradingPlugin)
 	if err != nil {
-		return &proto.ExecutionStatus{Success: false, Message: "Grading plugin not found"}, err
+		return &proto.ExecutionStatus{Success: false, Message: "Cutting plugin not found"}, err
 	}
 	//get the total count of the grading plugin
 	results := gradingPlugin["results"].(primitive.M)
@@ -169,7 +169,7 @@ func (s *CuttingPluginServer) UnregisterPlugin(ctx context.Context, req *proto.P
 // start the grading plugin
 func main() {
 
-	lis, err := net.Listen("tcp", "0.0.0.0:50053")
+	lis, err := net.Listen("tcp", ":50053")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

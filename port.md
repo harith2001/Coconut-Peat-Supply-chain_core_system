@@ -24,7 +24,11 @@ docker run -p 50051:50051 `
 >>   main:latest
 >> 
 
+# docker build all
+docker-compose up --build
+
 # create a network
 docker network create my_network
 docker run --network my_network
+
 
