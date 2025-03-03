@@ -20,7 +20,7 @@ var (
 func messageHandler(client mqtt.Client, msg mqtt.Message) {
 	log.Printf("Received MQTT message on %s: %s\n", msg.Topic(), msg.Payload())
 
-	// Parse the incoming message
+	//Parse the incoming message
 	var q, a, r int
 	_, err := fmt.Sscanf(string(msg.Payload()), "%d,%d,%d", &q, &a, &r)
 	if err != nil {
@@ -28,7 +28,7 @@ func messageHandler(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
-	// Update global variables
+	//Update global variables
 	Qualified, Acceptable, Rejected = q, a, r
 	log.Printf("Updated values - Qualified: %d, Acceptable: %d, Rejected: %d\n", Qualified, Acceptable, Rejected)
 }
@@ -70,11 +70,10 @@ func subscribeToSensorData(client mqtt.Client) {
 	log.Printf("Subscribed to MQTT topic: %s\n", topic)
 }
 
-// StartSensorSubscriber starts listening for sensor data
+// starts listening for sensor data
 func StartSensorSubscriber() {
 	client := connectMQTT()
 	subscribeToSensorData(client)
 
-	// Keep the program running to receive messages
-	select {}
+	select {} // have to edit after the data is recived from the sensor to stop the subscriber
 }
