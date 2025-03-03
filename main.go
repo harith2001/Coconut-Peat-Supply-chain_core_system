@@ -8,4 +8,5 @@ func main() {
 
 	// Start the server(gRPC gateway)
 	server.StartServer()
+
 }

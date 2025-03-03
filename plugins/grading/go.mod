@@ -5,12 +5,14 @@ go 1.22.7
 toolchain go1.22.9
 
 require (
+	github.com/eclipse/paho.mqtt.golang v1.5.0
 	google.golang.org/grpc v1.68.0
 	google.golang.org/protobuf v1.34.2
 )
 
 require (
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
