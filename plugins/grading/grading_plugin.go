@@ -256,6 +256,7 @@ func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 
 // start the grading plugin
 func main() {
+	//sensor connection
 	go sensor.StartSensorSubscriber()
 
 	lis, err := net.Listen("tcp", ":50052")
