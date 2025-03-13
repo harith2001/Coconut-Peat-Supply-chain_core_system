@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   core:
     build:
@@ -20,8 +18,21 @@ services:
       - ./plugins/grading:/app
     networks:
       - mynetwork
+    depends_on:
+      - hivemq
+    environment:
+      - MQTT_BROKER=hivemq:1883
     ports:
       - "50052:50052" 
+
+  hivemq:
+    image: hivemq/hivemq4
+    container_name: mqtt_broker
+    ports:
+      - "1883:1883"
+      - "8080:8080"
+    networks:
+      - mynetwork
 
   cutting:
     build:

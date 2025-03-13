@@ -9,6 +9,9 @@ import (
 
 	mongo "Coconut-Peat-Supply-chain_core_system/config/db"
 
+	"net/http"
+	_ "net/http/pprof"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -35,6 +38,8 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 	pluginName := req.PluginName
 
 	//connecting the plugin
+	//change it
+	//address := pluginName + ":" + pluginPort
 	address := pluginName + ":" + pluginPort
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -102,6 +107,13 @@ func StartServer() {
 
 	pb.RegisterMainServiceServer(grpcServer, &Server{})
 	pb.RegisterNewPluginServiceServer(grpcServer, &NewPlugin{})
+
+	go func() {
+		log.Println("Starting pprof server on :6060")
+		if err := http.ListenAndServe("localhost:6060", nil); err != nil {
+			log.Fatalf("pprof server failed: %v", err)
+		}
+	}()
 
 	log.Println("Server is listening on port 50051...")
 	if err := grpcServer.Serve(listener); err != nil {
