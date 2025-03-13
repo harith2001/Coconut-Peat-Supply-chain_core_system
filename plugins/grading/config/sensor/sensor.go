@@ -39,9 +39,9 @@ func connectMQTT() mqtt.Client {
 		log.Println("Warning: No .env file found, using default settings")
 	}
 
-	mqttBroker := os.Getenv("MQTT_BROKER_URL")
+	mqttBroker := os.Getenv("MQTT_BROKER")
 	if mqttBroker == "" {
-		mqttBroker = "tcp://localhost:1883"
+		mqttBroker = "tcp://hivemq:1883"
 	}
 
 	opts := mqtt.NewClientOptions()
