@@ -9,6 +9,7 @@ import (
 	"time"
 
 	mongo "grading/config/db"
+	sensor "grading/config/sensor"
 	"grading/proto"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -88,7 +89,97 @@ func (s *GradingPluginServer) RegisterPlugin(ctx context.Context, req *proto.Plu
 	return &proto.PluginResponse{Success: true, Message: "Plugin registered successfully"}, nil
 }
 
-// execute grading
+// // execute grading
+// func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.PluginExecute) (*proto.ExecutionStatus, error) {
+// 	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
+// 	filter := bson.M{"plugin_name": req.PluginName}
+// 	var plugin bson.M
+// 	err := collection.FindOne(ctx, filter).Decode(&plugin)
+// 	if err != nil {
+// 		return &proto.ExecutionStatus{Success: false, Message: "Plugin not found"}, err
+// 	}
+
+// 	if !plugin["status"].(bool) {
+// 		return &proto.ExecutionStatus{Success: false, Message: "Plugin is deactivated"}, nil
+// 	}
+
+// 	if plugin["process"].(string) == "completed" {
+// 		return &proto.ExecutionStatus{Success: false, Message: "Plugin grading already completed"}, nil
+// 	}
+
+// 	if plugin["process"].(string) != "registered" {
+// 		return &proto.ExecutionStatus{Success: false, Message: "Plugin is not registered"}, nil
+// 	}
+
+// 	userRequirementStr, ok := plugin["userRequirement"].(string)
+// 	if !ok {
+// 		return &proto.ExecutionStatus{Success: false, Message: "Failed to get userRequirement"}, nil
+// 	}
+
+// 	userRequirement, err := strconv.Atoi(userRequirementStr)
+// 	if err != nil {
+// 		return &proto.ExecutionStatus{Success: false, Message: "userRequirement must be an integer"}, err
+// 	}
+
+// 	qualified := 60
+// 	acceptable := 30
+// 	rejected := 10
+// 	totalCount := qualified + acceptable
+
+// 	message := "Grading completed successfully"
+// 	success := true
+// 	// Check if the total count is less than the user requirement
+// 	if totalCount < userRequirement {
+// 		message = "Order another batch or decide to process"
+// 		success = false
+// 	}
+// 	//check if the total count is greater than the user requirement
+// 	if totalCount > userRequirement {
+// 		message = "user requirement exceeded"
+// 		success = true
+// 	}
+
+// 	//update the plugin status to the mongoDB
+// 	update := bson.M{
+// 		"$set": bson.M{
+// 			"process":    "completed",
+// 			"results":    map[string]interface{}{"total": totalCount, "qualified": qualified, "acceptable": acceptable, "rejected": rejected},
+// 			"updated_at": time.Now(),
+// 		},
+// 	}
+
+// 	_, err = collection.UpdateOne(ctx, filter, update)
+// 	if err != nil {
+// 		return &proto.ExecutionStatus{Success: false, Message: "Failed to update plugin"}, err
+// 	}
+
+// 	return &proto.ExecutionStatus{Success: success, Message: message, Results: map[string]string{
+// 		"qualified":       strconv.Itoa(qualified),
+// 		"acceptable":      strconv.Itoa(acceptable),
+// 		"rejected":        strconv.Itoa(rejected),
+// 		"total":           strconv.Itoa(totalCount),
+// 		"userRequirement": strconv.Itoa(userRequirement)}}, nil
+// }
+
+// // UnregisterPlugin deactivates the grading plugin
+// func (s *GradingPluginServer) UnregisterPlugin(ctx context.Context, req *proto.PluginUnregister) (*proto.UnregisterResponse, error) {
+// 	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
+// 	filter := bson.M{"plugin_name": req.PluginName}
+// 	update := bson.M{
+// 		"$set": bson.M{
+// 			"status":     false,
+// 			"updated_at": time.Now(),
+// 		},
+// 	}
+
+// 	_, err := collection.UpdateOne(ctx, filter, update)
+// 	if err != nil {
+// 		return &proto.UnregisterResponse{Success: false, Message: "Failed to unregister plugin"}, err
+// 	}
+
+// 	return &proto.UnregisterResponse{Success: true, Message: "Plugin unregistered successfully"}, nil
+// }
+
 func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.PluginExecute) (*proto.ExecutionStatus, error) {
 	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
 	filter := bson.M{"plugin_name": req.PluginName}
@@ -120,29 +211,32 @@ func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 		return &proto.ExecutionStatus{Success: false, Message: "userRequirement must be an integer"}, err
 	}
 
-	qualified := 60
-	acceptable := 30
-	rejected := 10
-	totalCount := qualified + acceptable
-
+	// **Use MQTT data instead of hardcoded values**
+	totalCount := sensor.Qualified + sensor.Acceptable
 	message := "Grading completed successfully"
 	success := true
+
 	// Check if the total count is less than the user requirement
 	if totalCount < userRequirement {
 		message = "Order another batch or decide to process"
 		success = false
 	}
-	//check if the total count is greater than the user requirement
+	// Check if the total count is greater than the user requirement
 	if totalCount > userRequirement {
-		message = "user requirement exceeded"
+		message = "User requirement exceeded"
 		success = true
 	}
 
-	//update the plugin status to the mongoDB
+	// Update the plugin status in MongoDB
 	update := bson.M{
 		"$set": bson.M{
-			"process":    "completed",
-			"results":    map[string]interface{}{"total": totalCount, "qualified": qualified, "acceptable": acceptable, "rejected": rejected},
+			"process": "completed",
+			"results": map[string]interface{}{
+				"total":      totalCount,
+				"qualified":  sensor.Qualified,
+				"acceptable": sensor.Acceptable,
+				"rejected":   sensor.Rejected,
+			},
 			"updated_at": time.Now(),
 		},
 	}
@@ -153,36 +247,18 @@ func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 	}
 
 	return &proto.ExecutionStatus{Success: success, Message: message, Results: map[string]string{
-		"qualified":       strconv.Itoa(qualified),
-		"acceptable":      strconv.Itoa(acceptable),
-		"rejected":        strconv.Itoa(rejected),
+		"qualified":       strconv.Itoa(sensor.Qualified),
+		"acceptable":      strconv.Itoa(sensor.Acceptable),
+		"rejected":        strconv.Itoa(sensor.Rejected),
 		"total":           strconv.Itoa(totalCount),
 		"userRequirement": strconv.Itoa(userRequirement)}}, nil
 }
 
-// UnregisterPlugin deactivates the grading plugin
-func (s *GradingPluginServer) UnregisterPlugin(ctx context.Context, req *proto.PluginUnregister) (*proto.UnregisterResponse, error) {
-	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
-	filter := bson.M{"plugin_name": req.PluginName}
-	update := bson.M{
-		"$set": bson.M{
-			"status":     false,
-			"updated_at": time.Now(),
-		},
-	}
-
-	_, err := collection.UpdateOne(ctx, filter, update)
-	if err != nil {
-		return &proto.UnregisterResponse{Success: false, Message: "Failed to unregister plugin"}, err
-	}
-
-	return &proto.UnregisterResponse{Success: true, Message: "Plugin unregistered successfully"}, nil
-}
-
 // start the grading plugin
 func main() {
+	go sensor.StartSensorSubscriber()
 
-	lis, err := net.Listen("tcp", "0.0.0.0:50052")
+	lis, err := net.Listen("tcp", ":50052")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

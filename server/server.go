@@ -9,6 +9,9 @@ import (
 
 	mongo "Coconut-Peat-Supply-chain_core_system/config/db"
 
+	"net/http"
+	_ "net/http/pprof"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -20,7 +23,7 @@ type Server struct {
 
 func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb.ClientResponse, error) {
 
-	//get the plugin name and the plugin port number from the mongodb
+	//get the plugin name and the plugin port number and the plugin name from the mongodb
 	collection := mongo.MongoClient.Database("portDB").Collection("port")
 	filter := bson.D{
 		{Key: "plugin", Value: req.PluginName},
@@ -32,9 +35,12 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 		log.Fatalf("Error while fetching the plugin details: %v", err)
 	}
 	pluginPort := strconv.Itoa(int(result["port"].(int32)))
+	pluginName := req.PluginName
 
 	//connecting the plugin
-	address := "0.0.0.0:" + pluginPort
+	//change it
+	//address := pluginName + ":" + pluginPort
+	address := pluginName + ":" + pluginPort
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to backend service: %v", err)
@@ -91,7 +97,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 }
 
 func StartServer() {
-	listener, err := net.Listen("tcp", "0.0.0.0:50051")
+	listener, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
@@ -101,6 +107,13 @@ func StartServer() {
 
 	pb.RegisterMainServiceServer(grpcServer, &Server{})
 	pb.RegisterNewPluginServiceServer(grpcServer, &NewPlugin{})
+
+	go func() {
+		log.Println("Starting pprof server on :6060")
+		if err := http.ListenAndServe("localhost:6060", nil); err != nil {
+			log.Fatalf("pprof server failed: %v", err)
+		}
+	}()
 
 	log.Println("Server is listening on port 50051...")
 	if err := grpcServer.Serve(listener); err != nil {
