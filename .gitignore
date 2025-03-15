@@ -60,6 +60,8 @@ build/
 *.dll
 
 # Protobuf generated files (if you want to regenerate)
+plugins/grading/proto/*.pb.go
+plugins/grading/proto/*.pb.gw.go
 proto/*.pb.go
 proto/*.pb.gw.go
 
