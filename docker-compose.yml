@@ -6,6 +6,10 @@ services:
     container_name: Core
     networks:
       - mynetwork
+    depends_on:
+      - hivemq
+    environment:
+      - MQTT_BROKER=hivemq:1883
     ports:
       - "50051:50051"
 
