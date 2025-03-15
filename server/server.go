@@ -97,9 +97,6 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 }
 
 func StartServer() {
-	//sensor connection
-	go sensor.SensorMain()
-
 	listener, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
@@ -110,6 +107,9 @@ func StartServer() {
 
 	pb.RegisterMainServiceServer(grpcServer, &Server{})
 	pb.RegisterNewPluginServiceServer(grpcServer, &NewPlugin{})
+
+	//sensor connection
+	go sensor.SensorMain()
 
 	//testing purpose
 	// go func() {
