@@ -43,10 +43,13 @@ func connectMQTT() mqtt.Client {
 	if mqttBroker == "" {
 		mqttBroker = "tcp://hivemq:1883"
 	}
-
+	clientID := os.Getenv("CLIENT_ID")
+	if clientID == "" {
+		clientID = "GradingPluginSubscriber"
+	}
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(mqttBroker)
-	opts.SetClientID("GradingPluginSubscriber")
+	opts.SetClientID(clientID)
 
 	client := mqtt.NewClient(opts)
 	token := client.Connect()

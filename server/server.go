@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	mongo "Coconut-Peat-Supply-chain_core_system/config/db"
+	sensor "Coconut-Peat-Supply-chain_core_system/config/sensor"
 
-	"net/http"
 	_ "net/http/pprof"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -108,12 +108,16 @@ func StartServer() {
 	pb.RegisterMainServiceServer(grpcServer, &Server{})
 	pb.RegisterNewPluginServiceServer(grpcServer, &NewPlugin{})
 
-	go func() {
-		log.Println("Starting pprof server on :6060")
-		if err := http.ListenAndServe("localhost:6060", nil); err != nil {
-			log.Fatalf("pprof server failed: %v", err)
-		}
-	}()
+	//sensor connection
+	go sensor.SensorMain()
+
+	//testing purpose
+	// go func() {
+	// 	log.Println("Starting pprof server on :6060")
+	// 	if err := http.ListenAndServe("localhost:6060", nil); err != nil {
+	// 		log.Fatalf("pprof server failed: %v", err)
+	// 	}
+	// }()
 
 	log.Println("Server is listening on port 50051...")
 	if err := grpcServer.Serve(listener); err != nil {
