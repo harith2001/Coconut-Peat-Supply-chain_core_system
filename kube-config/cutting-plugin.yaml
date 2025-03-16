@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cutting-plugin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cutting-plugin
+  template:
+    metadata:
+      labels:
+        app: cutting-plugin
+    spec:
+      containers:
+        - name: cutting-plugin
+          image: harith2001/coconut-peat-supply-chain_core_system-cutting:latest
+          ports:
+            - containerPort: 50053
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cutting-plugin-service
+spec:
+  selector:
+    app: cutting-plugin
+  ports:
+    - protocol: TCP
+      port: 50053
+      targetPort: 50053
+  type: ClusterIP
