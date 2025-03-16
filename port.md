@@ -31,4 +31,23 @@ docker-compose up --build
 docker network create my_network
 docker run --network my_network
 
+# docker push 
+docker login
+docker images 
+docker tag --- 
+docker push
+coconut-peat-supply-chain_core_system-core                 latest              
+   2a114460ad36   9 seconds ago    1.07GB
+# kube config 
+cd /mnt/c/Users/DELL/Desktop/Coconut-Peat-Supply-chain_core_system/kube-config
+
+kubectl apply -f core-system.yaml
+kubectl apply -f grading-plugin.yaml
+kubectl apply -f cutting-plugin.yaml
+
+kubectl get pods
+kubectl get services
+
+kubectl get pods -o wide
+kubectl logs <pod-name>
 

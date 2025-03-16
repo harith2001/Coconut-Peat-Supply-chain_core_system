@@ -3,6 +3,7 @@ package server
 import (
 	pb "Coconut-Peat-Supply-chain_core_system/proto"
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 )
 
 type Server struct {
@@ -40,7 +42,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 	//connecting the plugin
 	//change it
 	//address := pluginName + ":" + pluginPort
-	address := pluginName + ":" + pluginPort
+	address := fmt.Sprintf("%s-plugin-service.default.svc.cluster.local:%s", pluginName, pluginPort)
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to backend service: %v", err)
@@ -107,7 +109,7 @@ func StartServer() {
 
 	pb.RegisterMainServiceServer(grpcServer, &Server{})
 	pb.RegisterNewPluginServiceServer(grpcServer, &NewPlugin{})
-
+	reflection.Register(grpcServer)
 	//sensor connection
 	go sensor.SensorMain()
 
