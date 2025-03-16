@@ -4,8 +4,11 @@ services:
       context: .
       dockerfile: core.dockerfile
     container_name: Core
-    networks:
-      - mynetwork
+    environment:
+      - MQTT_BROKER=ssl://34f3f472652e44989715e359655e32dc.s1.eu.hivemq.cloud:8883
+      - CLIENT_ID=CoreClient
+      - MQTT_USERNAME=harith
+      - MQTT_PASSWORD=Harith123
     ports:
       - "50051:50051"
 
@@ -16,23 +19,13 @@ services:
     container_name: Grading
     volumes:
       - ./plugins/grading:/app
-    networks:
-      - mynetwork
-    depends_on:
-      - hivemq
     environment:
-      - MQTT_BROKER=hivemq:1883
+      - MQTT_BROKER=ssl://34f3f472652e44989715e359655e32dc.s1.eu.hivemq.cloud:8883
+      - CLIENT_ID=GradingPluginSubscriber
+      - MQTT_USERNAME=harith
+      - MQTT_PASSWORD=Harith123
     ports:
       - "50052:50052" 
-
-  hivemq:
-    image: hivemq/hivemq4
-    container_name: mqtt_broker
-    ports:
-      - "1883:1883"
-      - "8080:8080"
-    networks:
-      - mynetwork
 
   cutting:
     build:
@@ -41,11 +34,5 @@ services:
     container_name: Cutting
     volumes:
       - ./plugins/cutting:/app
-    networks:
-      - mynetwork
     ports:
-      - "50053:50053" 
-
-networks:
-  mynetwork:
-    driver: bridge
+      - "50053:50053"

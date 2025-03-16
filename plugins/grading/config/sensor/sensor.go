@@ -1,6 +1,7 @@
 package sensor
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"os"
@@ -40,16 +41,25 @@ func connectMQTT() mqtt.Client {
 	}
 
 	mqttBroker := os.Getenv("MQTT_BROKER")
-	if mqttBroker == "" {
-		mqttBroker = "tcp://hivemq:1883"
-	}
 	clientID := os.Getenv("CLIENT_ID")
-	if clientID == "" {
-		clientID = "GradingPluginSubscriber"
-	}
+	username := os.Getenv("MQTT_USERNAME")
+	password := os.Getenv("MQTT_PASSWORD")
+
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(mqttBroker)
 	opts.SetClientID(clientID)
+	opts.SetUsername(username)
+	opts.SetPassword(password)
+
+	// Use TLS for secure connection
+	opts.SetTLSConfig(&tls.Config{
+		InsecureSkipVerify: false,
+		ClientAuth:         tls.NoClientCert,
+	})
+
+	// Set automatic reconnect
+	opts.SetAutoReconnect(true)
+	opts.SetConnectRetry(true)
 
 	client := mqtt.NewClient(opts)
 	token := client.Connect()
@@ -57,7 +67,7 @@ func connectMQTT() mqtt.Client {
 		log.Fatalf("Failed to connect to MQTT broker: %v", token.Error())
 	}
 
-	log.Printf("Connected to MQTT broker at %s", mqttBroker)
+	log.Printf("Connected to MQTT broker")
 	return client
 }
 
@@ -78,5 +88,12 @@ func StartSensorSubscriber() {
 	client := connectMQTT()
 	subscribeToSensorData(client)
 
-	select {} // have to edit after the data is recived from the sensor to stop the subscriber
+	// Wait for sensor data to be received
+	for {
+		if Qualified > 0 || Acceptable > 0 || Rejected > 0 {
+			log.Println("Sensor data received, stopping subscriber")
+			client.Disconnect(250)
+			break
+		}
+	}
 }
