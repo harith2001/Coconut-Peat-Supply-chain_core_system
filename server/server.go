@@ -26,7 +26,7 @@ type Server struct {
 func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb.ClientResponse, error) {
 
 	//get the plugin name and the plugin port number and the plugin name from the mongodb
-	collection := mongo.MongoClient.Database("portDB").Collection("port")
+	collection := mongo.MongoClient.Database("test").Collection("port")
 	filter := bson.D{
 		{Key: "plugin", Value: req.PluginName},
 		{Key: "status", Value: true},
@@ -40,9 +40,9 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 	pluginName := req.PluginName
 
 	//connecting the plugin
-	//change it
-	//address := pluginName + ":" + pluginPort
-	address := fmt.Sprintf("%s-plugin-service.default.svc.cluster.local:%s", pluginName, pluginPort)
+	//address := "0.0.0.0:" + pluginPort //local
+	//address := pluginName + ":" + pluginPort //docker
+	address := fmt.Sprintf("%s-plugin-service.default.svc.cluster.local:%s", pluginName, pluginPort) //kube
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to backend service: %v", err)
@@ -57,6 +57,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 	if action == "register" {
 		backendResp, err := backendClient.RegisterPlugin(ctx, &pb.PluginRequest{
 			PluginName:      req.PluginName,
+			WorkflowId:      req.WorkflowId,
 			UserRequirement: req.UserRequirement,
 		})
 		if err != nil {
@@ -70,6 +71,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 	} else if action == "execute" {
 		backendResp, err := backendClient.ExecutePlugin(ctx, &pb.PluginExecute{
 			PluginName: req.PluginName,
+			WorkflowId: req.WorkflowId,
 		})
 		if err != nil {
 			return nil, err
@@ -84,6 +86,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 	} else if action == "unregister" {
 		backendResp, err := backendClient.UnregisterPlugin(ctx, &pb.PluginUnregister{
 			PluginName: req.PluginName,
+			WorkflowId: req.WorkflowId,
 		})
 		if err != nil {
 			return nil, err
