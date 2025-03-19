@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: core-system-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: core-system-role
+rules:
+  - apiGroups: ["", "apps", "extensions"]
+    resources: ["pods", "deployments", "services"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: core-system-rolebinding
+subjects:
+  - kind: ServiceAccount
+    name: core-system-sa
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: core-system-role
+  apiGroup: rbac.authorization.k8s.io

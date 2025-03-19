@@ -38,6 +38,9 @@ docker tag ---
 docker push
 coconut-peat-supply-chain_core_system-core                 latest              
    2a114460ad36   9 seconds ago    1.07GB
+
+   docker tag 8f44361dbd08 harith2001/coconut-peat-supply-chain_core_system-core:latest
+   docker push harith2001/coconut-peat-supply-chain_core_system-core:latest
 # kube config 
 cd /mnt/c/Users/DELL/Desktop/Coconut-Peat-Supply-chain_core_system/kube-config
 

@@ -1,23 +1,38 @@
 #!/bin/bash
 
-# Unzip the cutting.zip file from customPlugins directory
-echo "Unzipping cutting.zip from Plugins..."
-if unzip plugins/cutting.zip -d plugins/unzipped_cutting; then
+# Unzip the plugin.zip file from customPlugins directory
+echo "Unzipping washing.zip from Plugins..."
+rm -rf plugins/unzipped_washing
+mkdir -p plugins/unzipped_washing
+
+if unzip -o plugins/washing.zip -d plugins/unzipped_washing; then
   echo "Unzip successful."
 else
-  echo "Failed to unzip cutting.zip. Exiting..."
+  echo "Failed to unzip washing.zip. Exiting..."
   exit 1
 fi
 
 # Change directory to the unzipped folder
-SPECIFIC_FOLDER="plugins/unzipped_cutting/cutting"
-echo "Changing directory to $SPECIFIC_FOLDER"
-cd "$SPECIFIC_FOLDER" || { echo "Failed to change directory to $SPECIFIC_FOLDER. Exiting..."; exit 1; }
+SPECIFIC_FOLDER="plugins/unzipped_washing/washing"
+if [ -d "$SPECIFIC_FOLDER" ]; then
+  echo "Changing directory to $SPECIFIC_FOLDER"
+  cd "$SPECIFIC_FOLDER"
+else
+  echo "Directory $SPECIFIC_FOLDER does not exist. Exiting..."
+  exit 1
+fi
 
 # Check if the Dockerfile exists
-DOCKERFILE="cutting.dockerfile"
+DOCKERFILE="washing.dockerfile"
 if [ ! -f "$DOCKERFILE" ]; then
   echo "Dockerfile $DOCKERFILE not found. Exiting..."
+  exit 1
+fi
+
+# Check if the kube yaml file exists
+KUBEFILE="washing-plugin.yaml"
+if [ ! -f "$KUBEFILE" ]; then
+  echo "Kube yaml file $KUBEFILE not found. Exiting..."
   exit 1
 fi
 
@@ -30,20 +45,45 @@ else
   exit 1
 fi
 
+
+# Ensure correct Docker Host for Rancher Desktop
+unset DOCKER_HOST
+
+# Docker Login
+echo "Logging into Docker..."
+if echo "harith2128" | docker login -u "harith2001" --password-stdin; then
+  echo "Docker login successful."
+else
+  echo "Failed to login to Docker. Exiting..."
+  exit 1
+fi
+
+
 # Build the Docker image
 echo "Building Docker image..."
-if docker build -t cutting_plugin -f "$DOCKERFILE" .; then
+if docker build -t washing_plugin -f "$DOCKERFILE" .; then
+  echo $DOCKERFILE
   echo "Docker image build successful."
 else
   echo "Failed to build Docker image. Exiting..."
   exit 1
 fi
 
-# Run the Docker container
-echo "Running Docker container..."
-if docker run -d -p 50053:50053 cutting_plugin; then
-  echo "Docker container is up and running!"
+# Push the Docker image
+echo "Pushing Docker image as latest..."
+IMAGE_TAG=$(docker images washing_plugin --format "{{.ID}}")
+if docker tag "$IMAGE_TAG" harith2001/coconut-peat-supply-chain_core_system-washing:latest && docker push harith2001/coconut-peat-supply-chain_core_system-washing:latest; then
+  echo "Docker image push as latest successful."
 else
-  echo "Failed to run Docker container. Exiting..."
+  echo "Failed to push Docker image as latest. Exiting..."
+  exit 1
+fi
+
+# Apply the kube yaml file
+echo "Applying kube yaml file..."
+if kubectl apply -f "$KUBEFILE"; then
+  echo "Kube yaml file applied successfully."
+else
+  echo "Failed to apply kube yaml file. Exiting..."
   exit 1
 fi
