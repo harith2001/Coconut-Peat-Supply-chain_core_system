@@ -2,8 +2,6 @@ module github.com/harith2001/Coconut-Peat-Supply-chain_core_system
 
 go 1.23.0
 
-replace github.com/harith2001/Coconut-Peat-Supply-chain_core_system/proto => ./proto
-
 toolchain go1.23.6
 
 require (
