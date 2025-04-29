@@ -13,11 +13,13 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func blockchainMain() {
+
 	// Connect to the Hardhat blockchain (Default: port 8545)
-	client, err := ethclient.Dial("http://127.0.0.1:8545")
+	client, err := ethclient.Dial("http://172.20.10.2:8545")
 	if err != nil {
 		log.Fatal("Error connecting to blockchain:", err)
 	}
@@ -36,7 +38,7 @@ func blockchainMain() {
 
 	// Call functions
 	createShipment(client, instance)
-	getAllShipments(instance)
+	//getAllShipments(instance)
 }
 
 func createShipment(client *ethclient.Client, instance *tracking.Tracking) {
@@ -68,15 +70,16 @@ func createShipment(client *ethclient.Client, instance *tracking.Tracking) {
 
 	// Define shipment details
 	receiver := common.HexToAddress("0xdD2FD4581271e230360230F9337D5c0430Bf44C0") // Replace with actual Hardhat test account
-	pickupTime := big.NewInt(1678900000)                                          // Example timestamp
-	distance := big.NewInt(100)
-	price := big.NewInt(6000000000000000000) // 0.05 ETH (in wei)
+	pickupTime := timestamppb.Now()                                               // Current time
+	pickupTimeInt := big.NewInt(pickupTime.Seconds)                               // Convert to *big.Int
+	distance := big.NewInt(100)                                                   // 100 km
+	price := big.NewInt(600)                                                      // 0.05 ETH (in wei)
 
 	// Send ETH along with the transaction
 	auth.Value = price // Must match the price in the contract
 
 	// Send transaction to create shipment
-	tx, err := instance.CreateShipment(auth, receiver, pickupTime, distance, price)
+	tx, err := instance.CreateShipment(auth, receiver, pickupTimeInt, distance, price)
 	if err != nil {
 		log.Fatal("Transaction failed:", err)
 	}
@@ -84,15 +87,15 @@ func createShipment(client *ethclient.Client, instance *tracking.Tracking) {
 	fmt.Println("Shipment created! TX Hash:", tx.Hash().Hex())
 }
 
-func getAllShipments(instance *tracking.Tracking) {
-	shipments, err := instance.GetAllTransactions(nil)
-	if err != nil {
-		log.Fatal("Failed to retrieve shipments:", err)
-	}
+// func getAllShipments(instance *tracking.Tracking) {
+// 	shipments, err := instance.GetAllTransactions(nil)
+// 	if err != nil {
+// 		log.Fatal("Failed to retrieve shipments:", err)
+// 	}
 
-	fmt.Println("List of Shipments:")
-	for i, s := range shipments {
-		fmt.Printf("[%d] Sender: %s, Receiver: %s, Distance: %d km, Price: %d wei, Status: %d\n",
-			i, s.Sender.Hex(), s.Receiver.Hex(), s.Distance, s.Price, s.Status)
-	}
-}
+// 	fmt.Println("List of Shipments:")
+// 	for i, s := range shipments {
+// 		fmt.Printf("[%d] Sender: %s, Receiver: %s, Distance: %d km, Price: %d wei, Status: %d\n",
+// 			i, s.Sender.Hex(), s.Receiver.Hex(), s.Distance, s.Price, s.Status)
+// 	}
+// }

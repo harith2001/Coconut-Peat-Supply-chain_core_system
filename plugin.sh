@@ -1,10 +1,15 @@
 #!/bin/bash
 
 # Unzip the plugin.zip file from customPlugins directory
-echo "Unzipping washing.zip from Plugins..."
-rm -rf plugins/unzipped_washing
-mkdir -p plugins/unzipped_washing
+# Ensure 'plugins' is a directory
+if [ -e "plugins" ]; then
+  if [ ! -d "plugins" ]; then
+    echo "Removing file named 'plugins' to create a directory..."
+    rm -f plugins
+  fi
+fi
 
+mkdir -p plugins/unzipped_washing
 if unzip -o plugins/washing.zip -d plugins/unzipped_washing; then
   echo "Unzip successful."
 else
