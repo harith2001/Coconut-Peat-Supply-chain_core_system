@@ -1,0 +1,45 @@
+name: Go CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  DOCKER_IMAGE_SERVER: harith2001/coconut-peat-supply-chain_core_system-core
+  DOCKER_IMAGE_PLUGIN1: harith2001/coconut-peat-supply-chain_core_system-grading
+  DOCKER_IMAGE_PLUGIN2: harith2001/coconut-peat-supply-chain_core_system-cutting
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.0' 
+
+      - name: Validate Go build
+        run: go build -v ./...
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build Docker Images
+        run: |
+          docker-compose build
+
+      - name: Tag & Push Docker Images
+        run: |
+          
+          docker push $DOCKER_IMAGE_SERVER:latest
+          docker push $DOCKER_IMAGE_PLUGIN1:latest
+          docker push $DOCKER_IMAGE_PLUGIN2:latest

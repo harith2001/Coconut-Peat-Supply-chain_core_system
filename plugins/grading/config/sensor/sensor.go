@@ -89,11 +89,5 @@ func StartSensorSubscriber() {
 	subscribeToSensorData(client)
 
 	// Wait for sensor data to be received
-	for {
-		if Qualified > 0 || Acceptable > 0 || Rejected > 0 {
-			log.Println("Sensor data received, stopping subscriber")
-			client.Disconnect(250)
-			break
-		}
-	}
+	select {}
 }

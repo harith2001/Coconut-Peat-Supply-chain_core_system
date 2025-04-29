@@ -22,7 +22,7 @@ type GradingPluginServer struct {
 
 // create the grading plugin in MongoDB
 func storePluginDetails() error {
-	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
+	collection := mongo.MongoClient.Database("test").Collection("plugins")
 	steps := []string{
 		"Unload all husk batch",
 		"Starting the grading sensor",
@@ -34,23 +34,17 @@ func storePluginDetails() error {
 	}
 	pluginDetails := bson.M{
 		"plugin_name":     "grading",
-		"senosor_name":    "image_module",
+		"senosor_name":    "grading/sensor_data",
 		"userRequirement": "",
+		"workflow_id":     "null",
 		"status":          true,
 		"process":         "not",
 		"steps":           steps,
 		"created_at":      time.Now(),
 		"updated_at":      time.Now(),
 	}
-	// Check if a plugin with the same name already exists
-	filter := bson.M{"plugin_name": pluginDetails["plugin_name"]}
-	var existingPlugin bson.M
-	err := collection.FindOne(context.Background(), filter).Decode(&existingPlugin)
-	if err == nil {
-		return fmt.Errorf("plugin with name '%s' already exists", pluginDetails["plugin_name"])
-	}
-
 	// Insert the new plugin details
+	var err error
 	_, err = collection.InsertOne(context.Background(), pluginDetails)
 	if err != nil {
 		return fmt.Errorf("error storing plugin details: %v", err)
@@ -60,39 +54,64 @@ func storePluginDetails() error {
 	return nil
 }
 
-// Register registers the grading plugin in MongoDB
+// RegisterPlugin registers the grading plugin in MongoDB
 func (s *GradingPluginServer) RegisterPlugin(ctx context.Context, req *proto.PluginRequest) (*proto.PluginResponse, error) {
-	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
-	// Check if the grading plugin is already registered
-	filter := bson.M{"plugin_name": req.PluginName, "process": "registered"}
+	collection := mongo.MongoClient.Database("test").Collection("plugins")
+
+	// Check if a plugin with workflow_id as null exists
+	filter := bson.M{"plugin_name": req.PluginName, "workflow_id": "null"}
 	var existingPlugin bson.M
 	err := collection.FindOne(ctx, filter).Decode(&existingPlugin)
+
 	if err == nil {
-		return &proto.PluginResponse{Success: false, Message: "Plugin is already registered"}, nil
+		// If a plugin with workflow_id as "null" exists, update it
+		update := bson.M{
+			"$set": bson.M{
+				"userRequirement": req.UserRequirement,
+				"workflow_id":     req.WorkflowId,
+				"process":         "registered",
+				"updated_at":      time.Now(),
+			},
+		}
+		_, err = collection.UpdateOne(ctx, filter, update)
+		if err != nil {
+			log.Printf("Failed to update plugin: %v", err)
+			return &proto.PluginResponse{Success: false, Message: "Failed to update existing plugin"}, err
+		}
+		return &proto.PluginResponse{Success: true, Message: "Existing plugin updated successfully"}, nil
 	}
-	//if not registered, register the plugin
-	userRequirement := req.UserRequirement
-	plugin := bson.M{
+
+	// If no plugin with workflow_id as "null" exists, create a new one
+	err = storePluginDetails()
+	if err != nil {
+		log.Printf("Failed to create new plugin: %v", err)
+		return &proto.PluginResponse{Success: false, Message: "Failed to create new plugin"}, err
+	}
+
+	// Now, update the newly created plugin with the workflow details
+	newFilter := bson.M{"plugin_name": req.PluginName, "workflow_id": "null"}
+	update := bson.M{
 		"$set": bson.M{
-			"userRequirement": userRequirement,
+			"userRequirement": req.UserRequirement,
+			"workflow_id":     req.WorkflowId,
 			"process":         "registered",
 			"updated_at":      time.Now(),
 		},
 	}
-	update := bson.M{"plugin_name": req.PluginName}
-	_, err = collection.UpdateOne(ctx, update, plugin)
+
+	_, err = collection.UpdateOne(ctx, newFilter, update)
 	if err != nil {
-		log.Printf("Failed to register plugin: %v", err)
-		return &proto.PluginResponse{Success: false, Message: "Failed to register plugin"}, err
+		log.Printf("Failed to update new plugin: %v", err)
+		return &proto.PluginResponse{Success: false, Message: "Failed to update new plugin"}, err
 	}
 
-	return &proto.PluginResponse{Success: true, Message: "Plugin registered successfully"}, nil
+	return &proto.PluginResponse{Success: true, Message: "New plugin created and registered successfully"}, nil
 }
 
 // execute the grading plugin
 func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.PluginExecute) (*proto.ExecutionStatus, error) {
-	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
-	filter := bson.M{"plugin_name": req.PluginName}
+	collection := mongo.MongoClient.Database("test").Collection("plugins")
+	filter := bson.M{"plugin_name": req.PluginName, "workflow_id": req.WorkflowId}
 	var plugin bson.M
 	err := collection.FindOne(ctx, filter).Decode(&plugin)
 	if err != nil {
@@ -162,6 +181,25 @@ func (s *GradingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 		"rejected":        strconv.Itoa(sensor.Rejected),
 		"total":           strconv.Itoa(totalCount),
 		"userRequirement": strconv.Itoa(userRequirement)}}, nil
+}
+
+// UnregisterPlugin deactivates
+func (s *GradingPluginServer) UnregisterPlugin(ctx context.Context, req *proto.PluginUnregister) (*proto.UnregisterResponse, error) {
+	collection := mongo.MongoClient.Database("test").Collection("plugins")
+	filter := bson.M{"plugin_name": req.PluginName, "workflow_id": req.WorkflowId}
+	update := bson.M{
+		"$set": bson.M{
+			"status":     false,
+			"updated_at": time.Now(),
+		},
+	}
+
+	_, err := collection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return &proto.UnregisterResponse{Success: false, Message: "Failed to unregister plugin"}, err
+	}
+
+	return &proto.UnregisterResponse{Success: true, Message: "Plugin unregistered successfully"}, nil
 }
 
 // start the grading plugin
