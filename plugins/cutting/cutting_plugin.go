@@ -22,7 +22,7 @@ type CuttingPluginServer struct {
 
 // create the cutting plugin in MongoDB
 func storePluginDetails() error {
-	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
+	collection := mongo.MongoClient.Database("test").Collection("plugins")
 	steps := []string{
 		"Insert the graded husk batch",
 		"Start the cutting machine",
@@ -32,21 +32,15 @@ func storePluginDetails() error {
 		"plugin_name":     "cutting",
 		"senosor_name":    "null",
 		"userRequirement": "",
+		"workflow_id":     "null",
 		"status":          true,
 		"process":         "not",
 		"steps":           steps,
 		"created_at":      time.Now(),
 		"updated_at":      time.Now(),
 	}
-	// Check if a plugin with the same name already exists
-	filter := bson.M{"plugin_name": pluginDetails["plugin_name"]}
-	var existingPlugin bson.M
-	err := collection.FindOne(context.Background(), filter).Decode(&existingPlugin)
-	if err == nil {
-		return fmt.Errorf("plugin with name '%s' already exists", pluginDetails["plugin_name"])
-	}
-
 	// Insert the new plugin details
+	var err error
 	_, err = collection.InsertOne(context.Background(), pluginDetails)
 	if err != nil {
 		return fmt.Errorf("error storing plugin details: %v", err)
@@ -58,40 +52,75 @@ func storePluginDetails() error {
 
 // Register registers the cutting plugin in MongoDB
 func (s *CuttingPluginServer) RegisterPlugin(ctx context.Context, req *proto.PluginRequest) (*proto.PluginResponse, error) {
-	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
-	// Check if the cutting plugin is already registered
-	filter := bson.M{"plugin_name": req.PluginName, "process": "registered"}
+	collection := mongo.MongoClient.Database("test").Collection("plugins")
+
+	// Check if a plugin with workflow_id as null exists
+	filter := bson.M{"plugin_name": req.PluginName, "workflow_id": "null"}
 	var existingPlugin bson.M
 	err := collection.FindOne(ctx, filter).Decode(&existingPlugin)
+
 	if err == nil {
-		return &proto.PluginResponse{Success: false, Message: "Plugin is already registered"}, nil
+		// If a plugin with workflow_id as "null" exists, update it
+		userRequirement := req.UserRequirement
+		if userRequirement == "" {
+			userRequirement = "0"
+		}
+
+		update := bson.M{
+			"$set": bson.M{
+				"userRequirement": userRequirement,
+				"workflow_id":     req.WorkflowId,
+				"status":          true,
+				"process":         "registered",
+				"updated_at":      time.Now(),
+			},
+		}
+
+		_, err = collection.UpdateOne(ctx, filter, update)
+		if err != nil {
+			log.Printf("Failed to update cutting plugin: %v", err)
+			return &proto.PluginResponse{Success: false, Message: "Failed to update existing cutting plugin"}, err
+		}
+		return &proto.PluginResponse{Success: true, Message: "Existing cutting plugin updated successfully"}, nil
 	}
+
+	// If no plugin with workflow_id as "null" exists, create a new one
+	err = storePluginDetails()
+	if err != nil {
+		log.Printf("Failed to create new cutting plugin: %v", err)
+		return &proto.PluginResponse{Success: false, Message: "Failed to create new cutting plugin"}, err
+	}
+
+	// Now, update the newly created plugin with the workflow details
+	newFilter := bson.M{"plugin_name": req.PluginName, "workflow_id": "null"}
 	userRequirement := req.UserRequirement
 	if userRequirement == "" {
 		userRequirement = "0"
 	}
-	plugin := bson.M{
+
+	update := bson.M{
 		"$set": bson.M{
 			"userRequirement": userRequirement,
+			"workflow_id":     req.WorkflowId,
 			"status":          true,
 			"process":         "registered",
 			"updated_at":      time.Now(),
 		},
 	}
-	update := bson.M{"plugin_name": req.PluginName}
-	_, err = collection.UpdateOne(ctx, update, plugin)
+
+	_, err = collection.UpdateOne(ctx, newFilter, update)
 	if err != nil {
-		log.Printf("Failed to register plugin: %v", err)
-		return &proto.PluginResponse{Success: false, Message: "Failed to register plugin"}, err
+		log.Printf("Failed to update new cutting plugin: %v", err)
+		return &proto.PluginResponse{Success: false, Message: "Failed to update new cutting plugin"}, err
 	}
 
-	return &proto.PluginResponse{Success: true, Message: "Plugin registered successfully"}, nil
+	return &proto.PluginResponse{Success: true, Message: "New cutting plugin created and registered successfully"}, nil
 }
 
 // execute grading
 func (s *CuttingPluginServer) ExecutePlugin(ctx context.Context, req *proto.PluginExecute) (*proto.ExecutionStatus, error) {
-	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
-	filter := bson.M{"plugin_name": req.PluginName}
+	collection := mongo.MongoClient.Database("test").Collection("plugins")
+	filter := bson.M{"plugin_name": req.PluginName, "workflow_id": req.WorkflowId}
 	var plugin bson.M
 	err := collection.FindOne(ctx, filter).Decode(&plugin)
 	if err != nil {
@@ -110,7 +139,7 @@ func (s *CuttingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 		return &proto.ExecutionStatus{Success: false, Message: "Plugin is not registered"}, nil
 	}
 
-	filter = bson.M{"plugin_name": "grading"}
+	filter = bson.M{"plugin_name": "grading", "workflow_id": req.WorkflowId}
 	var gradingPlugin bson.M
 	err = collection.FindOne(ctx, filter).Decode(&gradingPlugin)
 	if err != nil {
@@ -136,7 +165,7 @@ func (s *CuttingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 	}
 
 	// Update the cutting plugin document
-	filter = bson.M{"plugin_name": req.PluginName}
+	filter = bson.M{"plugin_name": req.PluginName, "workflow_id": req.WorkflowId}
 
 	_, err = collection.UpdateOne(ctx, filter, update)
 	if err != nil {
@@ -147,10 +176,10 @@ func (s *CuttingPluginServer) ExecutePlugin(ctx context.Context, req *proto.Plug
 		"total_count": strconv.Itoa(int(totalCount))}}, nil
 }
 
-// UnregisterPlugin deactivates the grading plugin
+// UnregisterPlugin deactivates
 func (s *CuttingPluginServer) UnregisterPlugin(ctx context.Context, req *proto.PluginUnregister) (*proto.UnregisterResponse, error) {
-	collection := mongo.MongoClient.Database("pluginDB").Collection("plugins")
-	filter := bson.M{"plugin_name": req.PluginName}
+	collection := mongo.MongoClient.Database("test").Collection("plugins")
+	filter := bson.M{"plugin_name": req.PluginName, "workflow_id": req.WorkflowId}
 	update := bson.M{
 		"$set": bson.M{
 			"status":     false,

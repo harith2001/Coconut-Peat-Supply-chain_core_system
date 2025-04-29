@@ -12,6 +12,7 @@ spec:
       labels:
         app: core-system
     spec:
+      serviceAccountName: core-system-sa
       containers:
         - name: core-system
           image: harith2001/coconut-peat-supply-chain_core_system-core:latest
@@ -26,6 +27,36 @@ spec:
               value: "harith"
             - name: MQTT_PASSWORD
               value: "Harith123"
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN"]  # Only needed network permissions, not full privilege
+          volumeMounts:
+            - name: docker-sock
+              mountPath: /var/run/docker.sock  # Mount host Docker socket
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Installing kubectl..." &&
+              apk add --no-cache curl &&
+              curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" &&
+              chmod +x kubectl &&
+              mv kubectl /usr/local/bin/kubectl &&
+              echo "Checking if core system binary exists..." &&
+              ls -lah /root/ &&
+              if [ -f "/root/main" ]; then
+                echo "Starting core system..."
+                chmod +x /root/main &&
+                /root/main
+              else
+                echo "ERROR: Core system binary 'main' not found!"
+                exit 1
+              fi
+
+      volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock  # Use host’s Docker daemon
+            type: Socket
 
 ---
 apiVersion: v1
@@ -39,4 +70,5 @@ spec:
     - protocol: TCP
       port: 50051
       targetPort: 50051
-  type: ClusterIP
+      nodePort: 30001
+  type: NodePort

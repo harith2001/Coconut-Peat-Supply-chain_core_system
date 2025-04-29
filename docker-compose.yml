@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: core.dockerfile
+    image: harith2001/coco-core
     container_name: Core
     environment:
       - MQTT_BROKER=ssl://34f3f472652e44989715e359655e32dc.s1.eu.hivemq.cloud:8883
@@ -16,6 +17,7 @@ services:
     build:
       context: ./plugins/grading
       dockerfile: grading.dockerfile
+    image: harith2001/coco-grading
     container_name: Grading
     volumes:
       - ./plugins/grading:/app
@@ -31,6 +33,7 @@ services:
     build:
       context: ./plugins/cutting
       dockerfile: cutting.dockerfile
+    image: harith2001/coco-cutting
     container_name: Cutting
     volumes:
       - ./plugins/cutting:/app
