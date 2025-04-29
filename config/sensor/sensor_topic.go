@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	mongo "Coconut-Peat-Supply-chain_core_system/config/db"
+	mongo "github.com/harith2001/Coconut-Peat-Supply-chain_core_system/config/db"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/joho/godotenv"

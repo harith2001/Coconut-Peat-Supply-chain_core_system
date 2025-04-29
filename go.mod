@@ -1,4 +1,4 @@
-module Coconut-Peat-Supply-chain_core_system
+module github.com/harith2001/Coconut-Peat-Supply-chain_core_system
 
 go 1.23.0
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Coconut-Peat-Supply-chain_core_system/server"
+	"github.com/harith2001/Coconut-Peat-Supply-chain_core_system/server"
 )
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	pb "Coconut-Peat-Supply-chain_core_system/proto" // Adjust package path
+	pb "github.com/harith2001/Coconut-Peat-Supply-chain_core_system/proto" // Adjust package path
 
 	"google.golang.org/grpc"
 )

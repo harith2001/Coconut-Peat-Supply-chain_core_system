@@ -7,7 +7,7 @@ import (
 	"log"
 	"math/big"
 
-	tracking "Coconut-Peat-Supply-chain_core_system/config/Tracking"
+	tracking "github.com/harith2001/Coconut-Peat-Supply-chain_core_system/config/Tracking"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"

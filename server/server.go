@@ -1,15 +1,16 @@
 package server
 
 import (
-	pb "Coconut-Peat-Supply-chain_core_system/proto"
 	"context"
 	"fmt"
 	"log"
 	"net"
 	"strconv"
 
-	mongo "Coconut-Peat-Supply-chain_core_system/config/db"
-	sensor "Coconut-Peat-Supply-chain_core_system/config/sensor"
+	pb "github.com/harith2001/Coconut-Peat-Supply-chain_core_system/proto"
+
+	mongo "github.com/harith2001/Coconut-Peat-Supply-chain_core_system/config/db"
+	sensor "github.com/harith2001/Coconut-Peat-Supply-chain_core_system/config/sensor"
 
 	_ "net/http/pprof"
 
