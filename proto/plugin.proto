@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package plugin;
 
-option go_package = "/";
+option go_package = "github.com/harith2001/Coconut-Peat-Supply-chain_core_system/proto;proto";
 
 // Main service, which acts as an API Gateway.
 service MainService {
