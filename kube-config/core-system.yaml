@@ -15,7 +15,7 @@ spec:
       serviceAccountName: core-system-sa
       containers:
         - name: core-system
-          image: harith2001/coconut-peat-supply-chain_core_system-core:latest
+          image: harith2001/coco-core:latest
           ports:
             - containerPort: 50051
           env:

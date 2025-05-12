@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: grading-plugin
-          image: harith2001/coconut-peat-supply-chain_core_system-grading:latest
+          image: harith2001/coco-grading:latest
           ports:
             - containerPort: 50052
           env:
