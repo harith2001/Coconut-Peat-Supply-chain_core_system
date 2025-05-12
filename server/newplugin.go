@@ -41,7 +41,8 @@ func (s *NewPlugin) NewPluginCreate(ctx context.Context, req *pbv.NewPluginCreat
 	}
 
 	//run the plugin.sh command file to unzip, install and run docker container
-	cmd := exec.Command("/bin/bash", "plugin.sh")
+	pluginName := filename[:len(filename)-len(filepath.Ext(filename))] // remove .zip
+	cmd := exec.Command("/bin/bash", "plugin.sh", pluginName)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

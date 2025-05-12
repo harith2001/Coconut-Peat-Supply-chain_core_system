@@ -1,45 +1,40 @@
 #!/bin/bash
 
 # Unzip the plugin.zip file from customPlugins directory
-# Ensure 'plugins' is a directory
-if [ -e "plugins" ]; then
-  if [ ! -d "plugins" ]; then
-    echo "Removing file named 'plugins' to create a directory..."
-    rm -f plugins
-  fi
+
+PLUGIN_NAME=$1
+
+if [ -z "$PLUGIN_NAME" ]; then
+  echo "Plugin name not provided. Exiting..."
+  exit 1
 fi
 
-mkdir -p plugins/unzipped_washing
-if unzip -o plugins/washing.zip -d plugins/unzipped_washing; then
-  echo "Unzip successful."
+ZIP_FILE="plugins/${PLUGIN_NAME}.zip"
+UNZIP_DIR="plugins/unzipped_${PLUGIN_NAME}"
+PLUGIN_DIR="${UNZIP_DIR}/${PLUGIN_NAME}"
+DOCKERFILE="${PLUGIN_NAME}.dockerfile"
+KUBEFILE="${PLUGIN_NAME}-plugin.yaml"
+
+# Check if the zip file exists
+mkdir -p "$UNZIP_DIR"
+if unzip -o "$ZIP_FILE" -d "$UNZIP_DIR"; then
+  echo "Unzipped $ZIP_FILE successfully."
 else
-  echo "Failed to unzip washing.zip. Exiting..."
+  echo "Failed to unzip $ZIP_FILE. Exiting..."
   exit 1
 fi
 
-# Change directory to the unzipped folder
-SPECIFIC_FOLDER="plugins/unzipped_washing/washing"
-if [ -d "$SPECIFIC_FOLDER" ]; then
-  echo "Changing directory to $SPECIFIC_FOLDER"
-  cd "$SPECIFIC_FOLDER"
+# Navigate into plugin directory
+if [ -d "$PLUGIN_DIR" ]; then
+  cd "$PLUGIN_DIR"
 else
-  echo "Directory $SPECIFIC_FOLDER does not exist. Exiting..."
+  echo "Directory $PLUGIN_DIR does not exist. Exiting..."
   exit 1
 fi
 
-# Check if the Dockerfile exists
-DOCKERFILE="washing.dockerfile"
-if [ ! -f "$DOCKERFILE" ]; then
-  echo "Dockerfile $DOCKERFILE not found. Exiting..."
-  exit 1
-fi
-
-# Check if the kube yaml file exists
-KUBEFILE="washing-plugin.yaml"
-if [ ! -f "$KUBEFILE" ]; then
-  echo "Kube yaml file $KUBEFILE not found. Exiting..."
-  exit 1
-fi
+# Ensure files exist
+[ -f "$DOCKERFILE" ] || { echo "$DOCKERFILE not found. Exiting..."; exit 1; }
+[ -f "$KUBEFILE" ] || { echo "$KUBEFILE not found. Exiting..."; exit 1; }
 
 # Run go mod tidy
 echo "Running go mod tidy..."
@@ -49,7 +44,6 @@ else
   echo "Failed to run go mod tidy. Exiting..."
   exit 1
 fi
-
 
 # Ensure correct Docker Host for Rancher Desktop
 unset DOCKER_HOST
@@ -63,32 +57,15 @@ else
   exit 1
 fi
 
-
-# Build the Docker image
-echo "Building Docker image..."
-if docker build -t washing_plugin -f "$DOCKERFILE" .; then
-  echo $DOCKERFILE
-  echo "Docker image build successful."
-else
-  echo "Failed to build Docker image. Exiting..."
-  exit 1
-fi
+# Build and push Docker image
+IMAGE_NAME="harith2001/coconut-peat-supply-chain_core_system-${PLUGIN_NAME}:latest"
+docker build -t "${PLUGIN_NAME}_plugin" -f "$DOCKERFILE" . || { echo "Docker build failed. Exiting..."; exit 1; }
 
 # Push the Docker image
-echo "Pushing Docker image as latest..."
-IMAGE_TAG=$(docker images washing_plugin --format "{{.ID}}")
-if docker tag "$IMAGE_TAG" harith2001/coconut-peat-supply-chain_core_system-washing:latest && docker push harith2001/coconut-peat-supply-chain_core_system-washing:latest; then
-  echo "Docker image push as latest successful."
-else
-  echo "Failed to push Docker image as latest. Exiting..."
-  exit 1
-fi
+docker tag "${PLUGIN_NAME}_plugin" "$IMAGE_NAME"
+docker push "$IMAGE_NAME" || { echo "Docker push failed. Exiting..."; exit 1; }
 
-# Apply the kube yaml file
-echo "Applying kube yaml file..."
-if kubectl apply -f "$KUBEFILE"; then
-  echo "Kube yaml file applied successfully."
-else
-  echo "Failed to apply kube yaml file. Exiting..."
-  exit 1
-fi
+# Apply Kubernetes YAML
+kubectl apply -f "$KUBEFILE" || { echo "Kube apply failed. Exiting..."; exit 1; }
+
+echo "Plugin deployment complete for $PLUGIN_NAME."
