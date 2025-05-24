@@ -134,9 +134,14 @@ func SensorMain() error {
 
 	// Subscribe to all topics
 	topic := "#"
-	token := client.Subscribe(topic, 1, messageHandler)
-	if token.Wait() && token.Error() != nil {
-		log.Fatalf("Subscription error: %v", token.Error())
+	for {
+		token := client.Subscribe(topic, 1, messageHandler)
+		if token.Wait() && token.Error() != nil {
+			log.Printf("Subscription error: %v. Retrying in 5 seconds...", token.Error())
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		break
 	}
 
 	fmt.Println("Subscribed to all topics!")

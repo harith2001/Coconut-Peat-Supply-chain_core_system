@@ -205,7 +205,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 	mongo.ConnectMongoDB()
 	proto.RegisterPluginServer(grpcServer, &CuttingPluginServer{})
-	storePluginDetails()
+	storePluginDetails() //store mongoDB plugin details
 
 	log.Println("gRPC server is running on port 50053")
 	if err := grpcServer.Serve(lis); err != nil {

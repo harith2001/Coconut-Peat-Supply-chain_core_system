@@ -80,7 +80,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 
 		// If execution is successful, send data to the blockchain
 		if backendResp.Success == true {
-			blockchainMain() // Pass the results to the blockchain function
+			blockchainMain(backendResp.Results) // Pass the results to the blockchain function
 		}
 
 		// Return the response to the client

@@ -16,10 +16,12 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func blockchainMain() {
+func blockchainMain(results map[string]string) {
 
+	fmt.Println(results)
+	fmt.Println("Connecting to Ethereum blockchain...")
 	// Connect to the Hardhat blockchain (Default: port 8545)
-	client, err := ethclient.Dial("http://172.20.10.2:8545")
+	client, err := ethclient.Dial("http://192.168.8.100:8545")
 	if err != nil {
 		log.Fatal("Error connecting to blockchain:", err)
 	}

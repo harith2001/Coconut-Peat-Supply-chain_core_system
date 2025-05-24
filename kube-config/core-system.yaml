@@ -27,6 +27,13 @@ spec:
               value: "harith"
             - name: MQTT_PASSWORD
               value: "Harith123"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
           securityContext:
             capabilities:
               add: ["NET_ADMIN"]  # Only needed network permissions, not full privilege
