@@ -39,7 +39,7 @@ docker push
 coconut-peat-supply-chain_core_system-core                 latest              
    2a114460ad36   9 seconds ago    1.07GB
 
-   docker tag 2fb0dc807c4b harith2001/coco-core:latest
+   docker tag 4c7e2bcf445e harith2001/coco-cutting:latest
    docker push harith2001/coconut-peat-supply-chain_core_system-core:latest
 # kube config 
 cd /mnt/c/Users/DELL/Desktop/Coconut-Peat-Supply-chain_core_system/kube-config
@@ -63,3 +63,11 @@ kubectl exec -it <pod-name> -n <namespace> -- cat /path/to/file
 To open a terminal in the pod:
 kubectl exec -it <pod-name> -n <namespace> -- sh
 
+# kube dash board
+kubectl -n kubernetes-dashboard create token admin-user
+kubectl proxy
+
+# hpa
+kubectl get hpa 
+kubectl top pods
+kubectl top nodes 

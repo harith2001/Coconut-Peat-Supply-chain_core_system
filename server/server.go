@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 
 	pb "github.com/harith2001/Coconut-Peat-Supply-chain_core_system/proto"
 
@@ -43,7 +44,13 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 	//connecting the plugin
 	//address := "0.0.0.0:" + pluginPort //local
 	//address := pluginName + ":" + pluginPort //docker
-	address := fmt.Sprintf("%s-plugin-service.default.svc.cluster.local:%s", pluginName, pluginPort) //kube
+	// address := fmt.Sprintf("%s-plugin-service.default.svc.cluster.local:%s", pluginName, pluginPort) //kube
+	sanitizedName := pluginName
+	if strings.HasSuffix(pluginName, "-plugin") {
+		sanitizedName = strings.TrimSuffix(pluginName, "-plugin")
+	}
+	address := fmt.Sprintf("%s-plugin-service.default.svc.cluster.local:%s", sanitizedName, pluginPort)
+
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect to backend service: %v", err)
