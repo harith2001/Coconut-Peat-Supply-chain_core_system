@@ -39,7 +39,8 @@ docker push
 coconut-peat-supply-chain_core_system-core                 latest              
    2a114460ad36   9 seconds ago    1.07GB
 
-   docker tag 4c7e2bcf445e harith2001/coco-cutting:latest
+   docker tag 662f0c81197d harith2001/coco-core:latest
+   docker tag 3a43b5fe1b16 harith2001/coco-grading:latest
    docker push harith2001/coconut-peat-supply-chain_core_system-core:latest
 # kube config 
 cd /mnt/c/Users/DELL/Desktop/Coconut-Peat-Supply-chain_core_system/kube-config
@@ -52,7 +53,7 @@ kubectl get pods
 kubectl get services
 
 kubectl get pods -o wide
-kubectl logs -f core-system-695b48c9f5-8l57l
+kubectl logs -f core-system-677984b799-ws2xm
 
 kubectl port-forward svc/prometheus-kube-prometheus-prometheus 9090:9090 -n default
 kubectl port-forward svc/prometheus-grafana 3000:80 -n default
@@ -66,8 +67,12 @@ kubectl exec -it <pod-name> -n <namespace> -- sh
 # kube dash board
 kubectl -n kubernetes-dashboard create token admin-user
 kubectl proxy
+http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/workloads?namespace=default
 
 # hpa
-kubectl get hpa 
+kubectl get hpa
 kubectl top pods
 kubectl top nodes 
+
+# blockchain 
+abigen --sol ShipmentTracker.sol --pkg tracking --out Tracking.go

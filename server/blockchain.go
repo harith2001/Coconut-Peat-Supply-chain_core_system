@@ -13,22 +13,23 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func blockchainMain(results map[string]string) {
+func blockchainMain(results map[string]string, PluginName string, WorkflowId string) {
 
-	fmt.Println(results)
+	fmt.Println("qualified:", results["qualified"])
+	fmt.Println("name:", PluginName)
+	fmt.Println("workflow:", WorkflowId)
 	fmt.Println("Connecting to Ethereum blockchain...")
 	// Connect to the Hardhat blockchain (Default: port 8545)
-	client, err := ethclient.Dial("http://192.168.8.100:8545")
+	client, err := ethclient.Dial("https://rpc.ankr.com/eth_holesky")
 	if err != nil {
 		log.Fatal("Error connecting to blockchain:", err)
 	}
 	fmt.Println("Connected to Ethereum blockchain")
 
 	// Replace with your actual deployed contract address
-	contractAddress := common.HexToAddress("0x5FbDB2315678afecb367f032d93F642f64180aa3") // Corrected
+	contractAddress := common.HexToAddress("0x91719E51c3100D792DdcF4af35B661Fb60754E87") // Corrected
 
 	// Load contract instance
 	instance, err := tracking.NewTracking(contractAddress, client)
@@ -38,14 +39,29 @@ func blockchainMain(results map[string]string) {
 
 	fmt.Println("Smart contract loaded successfully!")
 
+	// Convert qualified count to *big.Int
+	var qualifiedStr string
+	if val, exists := results["qualified"]; exists {
+		qualifiedStr = val
+	} else if val, exists := results["totalCount"]; exists {
+		qualifiedStr = val
+	} else {
+		log.Fatal("Neither 'qualified' nor 'totalCount' found in results map")
+	}
+	qualifiedCount, ok := new(big.Int).SetString(qualifiedStr, 10)
+	if !ok {
+		log.Fatal("Error converting qualified count to big.Int:", qualifiedStr)
+	}
+	fmt.Println("Qualified count:", qualifiedCount)
+
 	// Call functions
-	createShipment(client, instance)
+	createShipment(client, instance, qualifiedCount, PluginName, WorkflowId)
 	//getAllShipments(instance)
 }
 
-func createShipment(client *ethclient.Client, instance *tracking.Tracking) {
+func createShipment(client *ethclient.Client, instance *tracking.Tracking, qualifiedCount *big.Int, PluginName string, WorkflowId string) {
 	// Replace with the private key of the sender
-	privateKey, err := crypto.HexToECDSA("df57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e") // Replace with a real Hardhat test account private key
+	privateKey, err := crypto.HexToECDSA("12022630c9d2eb7d4335a831f6268d78f9b4192e978e54d57d0e0401eff8b165") // Replace with a real Hardhat test account private key
 	if err != nil {
 		log.Fatal("Invalid private key:", err)
 	}
@@ -57,7 +73,7 @@ func createShipment(client *ethclient.Client, instance *tracking.Tracking) {
 	fmt.Println("Sender Address:", senderAddress.Hex())
 
 	// Create authenticated transaction signer
-	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(31337)) // Use Hardhat's chain ID
+	auth, err := bind.NewKeyedTransactorWithChainID(privateKey, big.NewInt(17000)) // Use Hardhat's chain ID
 	if err != nil {
 		log.Fatal("Failed to create auth:", err)
 	}
@@ -71,33 +87,17 @@ func createShipment(client *ethclient.Client, instance *tracking.Tracking) {
 	auth.GasLimit = uint64(3000000) // Adjust gas limit as needed
 
 	// Define shipment details
-	receiver := common.HexToAddress("0xdD2FD4581271e230360230F9337D5c0430Bf44C0") // Replace with actual Hardhat test account
-	pickupTime := timestamppb.Now()                                               // Current time
-	pickupTimeInt := big.NewInt(pickupTime.Seconds)                               // Convert to *big.Int
-	distance := big.NewInt(100)                                                   // 100 km
-	price := big.NewInt(600)                                                      // 0.05 ETH (in wei)
+	shipmentId := WorkflowId // Use WorkflowId as shipment ID
+	receiver := common.HexToAddress("0x9ef57661C968aCe446EB1B0BA1A3fBf607AEC12A")
+	completedStep := PluginName
+	acceptedCount := qualifiedCount // *big.Int
 
-	// Send ETH along with the transaction
-	auth.Value = price // Must match the price in the contract
-
-	// Send transaction to create shipment
-	tx, err := instance.CreateShipment(auth, receiver, pickupTimeInt, distance, price)
+	// 🔁 Call smart contract function
+	tx, err := instance.CreateShipment(auth, shipmentId, receiver, completedStep, acceptedCount)
 	if err != nil {
 		log.Fatal("Transaction failed:", err)
 	}
 
-	fmt.Println("Shipment created! TX Hash:", tx.Hash().Hex())
+	fmt.Println("Shipment created successfully!")
+	fmt.Println("Transaction hash:", tx.Hash().Hex())
 }
-
-// func getAllShipments(instance *tracking.Tracking) {
-// 	shipments, err := instance.GetAllTransactions(nil)
-// 	if err != nil {
-// 		log.Fatal("Failed to retrieve shipments:", err)
-// 	}
-
-// 	fmt.Println("List of Shipments:")
-// 	for i, s := range shipments {
-// 		fmt.Printf("[%d] Sender: %s, Receiver: %s, Distance: %d km, Price: %d wei, Status: %d\n",
-// 			i, s.Sender.Hex(), s.Receiver.Hex(), s.Distance, s.Price, s.Status)
-// 	}
-// }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/joho/godotenv"
@@ -18,10 +19,9 @@ var (
 )
 
 // MQTT message handler
-func messageHandler(client mqtt.Client, msg mqtt.Message) {
-	log.Printf("Received MQTT message on %s: %s\n", msg.Topic(), msg.Payload())
+var LastUpdated time.Time
 
-	//Parse the incoming message
+func messageHandler(client mqtt.Client, msg mqtt.Message) {
 	var q, a, r int
 	_, err := fmt.Sscanf(string(msg.Payload()), "%d,%d,%d", &q, &a, &r)
 	if err != nil {
@@ -29,9 +29,10 @@ func messageHandler(client mqtt.Client, msg mqtt.Message) {
 		return
 	}
 
-	//Update global variables
 	Qualified, Acceptable, Rejected = q, a, r
-	log.Printf("Updated values - Qualified: %d, Acceptable: %d, Rejected: %d\n", Qualified, Acceptable, Rejected)
+	LastUpdated = time.Now()
+
+	log.Printf("Updated values - Q: %d, A: %d, R: %d at %s\n", q, a, r, LastUpdated.Format(time.RFC3339))
 }
 
 // Connects to MQTT
