@@ -86,7 +86,7 @@ func (s *Server) ClientFunction(ctx context.Context, req *pb.ClientRequest) (*pb
 		}
 
 		// send data to the blockchain
-		blockchainMain(backendResp.Results, req.PluginName, req.WorkflowId) // Pass the results, pluginName, and workflowId to the blockchain function
+		blockchainMain(req.PluginName, req.WorkflowId) // Pass the results, pluginName, and workflowId to the blockchain function
 
 		// Return the response to the client
 		return &pb.ClientResponse{

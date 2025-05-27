@@ -15,9 +15,9 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-func blockchainMain(results map[string]string, PluginName string, WorkflowId string) {
+func blockchainMain(PluginName string, WorkflowId string) {
 
-	fmt.Println("qualified:", results["qualified"])
+	// fmt.Println("qualified:", results["qualified"])
 	fmt.Println("name:", PluginName)
 	fmt.Println("workflow:", WorkflowId)
 	fmt.Println("Connecting to Ethereum blockchain...")
@@ -40,26 +40,26 @@ func blockchainMain(results map[string]string, PluginName string, WorkflowId str
 	fmt.Println("Smart contract loaded successfully!")
 
 	// Convert qualified count to *big.Int
-	var qualifiedStr string
-	if val, exists := results["qualified"]; exists {
-		qualifiedStr = val
-	} else if val, exists := results["totalCount"]; exists {
-		qualifiedStr = val
-	} else {
-		log.Fatal("Neither 'qualified' nor 'totalCount' found in results map")
-	}
-	qualifiedCount, ok := new(big.Int).SetString(qualifiedStr, 10)
-	if !ok {
-		log.Fatal("Error converting qualified count to big.Int:", qualifiedStr)
-	}
-	fmt.Println("Qualified count:", qualifiedCount)
+	// var qualifiedStr string
+	// if val, exists := results["qualified"]; exists {
+	// 	qualifiedStr = val
+	// } else if val, exists := results["totalCount"]; exists {
+	// 	qualifiedStr = val
+	// } else {
+	// 	log.Fatal("Neither 'qualified' nor 'totalCount' found in results map")
+	// }
+	// qualifiedCount, ok := new(big.Int).SetString(qualifiedStr, 10)
+	// if !ok {
+	// 	log.Fatal("Error converting qualified count to big.Int:", qualifiedStr)
+	// }
+	// fmt.Println("Qualified count:", qualifiedCount)
 
 	// Call functions
-	createShipment(client, instance, qualifiedCount, PluginName, WorkflowId)
+	createShipment(client, instance, PluginName, WorkflowId)
 	//getAllShipments(instance)
 }
 
-func createShipment(client *ethclient.Client, instance *tracking.Tracking, qualifiedCount *big.Int, PluginName string, WorkflowId string) {
+func createShipment(client *ethclient.Client, instance *tracking.Tracking, PluginName string, WorkflowId string) {
 	// Replace with the private key of the sender
 	privateKey, err := crypto.HexToECDSA("12022630c9d2eb7d4335a831f6268d78f9b4192e978e54d57d0e0401eff8b165") // Replace with a real Hardhat test account private key
 	if err != nil {
@@ -90,7 +90,7 @@ func createShipment(client *ethclient.Client, instance *tracking.Tracking, quali
 	shipmentId := WorkflowId // Use WorkflowId as shipment ID
 	receiver := common.HexToAddress("0x9ef57661C968aCe446EB1B0BA1A3fBf607AEC12A")
 	completedStep := PluginName
-	acceptedCount := qualifiedCount // *big.Int
+	acceptedCount := big.NewInt(100) // *big.Int
 
 	// 🔁 Call smart contract function
 	tx, err := instance.CreateShipment(auth, shipmentId, receiver, completedStep, acceptedCount)

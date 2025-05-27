@@ -39,7 +39,7 @@ docker push
 coconut-peat-supply-chain_core_system-core                 latest              
    2a114460ad36   9 seconds ago    1.07GB
 
-   docker tag 662f0c81197d harith2001/coco-core:latest
+   docker tag 936ac163fa29 harith2001/coco-core:latest
    docker tag 3a43b5fe1b16 harith2001/coco-grading:latest
    docker push harith2001/coconut-peat-supply-chain_core_system-core:latest
 # kube config 
@@ -53,7 +53,7 @@ kubectl get pods
 kubectl get services
 
 kubectl get pods -o wide
-kubectl logs -f core-system-677984b799-ws2xm
+kubectl logs -f grading-plugin-54f48cfbdb-wbxmh
 
 kubectl port-forward svc/prometheus-kube-prometheus-prometheus 9090:9090 -n default
 kubectl port-forward svc/prometheus-grafana 3000:80 -n default
